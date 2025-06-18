@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
+from datetime import date
 
 datafile = "./data/2025-06-17_training_data_49280_samples.csv"
 
@@ -37,13 +38,13 @@ def load_and_preprocess_data(filename):
 
     return X, y, input_cols
 
-def run_cross_validation(X_train, y_train, input_cols, k=5, epochs=300):
+def run_cross_validation(X_train, y_train, k=5, epochs=300):
     kf = KFold(n_splits=k, shuffle=True, random_state=42)
     r2_scores = []
     fold = 1
 
     for train_idx, val_idx in kf.split(X_train):
-        print(f"\nFold {fold}/{k}")
+        print(f"\nFold {fold}/{k}:")
         X_train_fold, X_val_fold = X_train[train_idx], X_train[val_idx]
         y_train_fold, y_val_fold = y_train[train_idx], y_train[val_idx]
 
@@ -83,7 +84,7 @@ def run_cross_validation(X_train, y_train, input_cols, k=5, epochs=300):
             true_unscaled = y_scaler_fold.inverse_transform(y_val_tensor.numpy())
             r2 = r2_score(true_unscaled, preds_unscaled)
             r2_scores.append(r2)
-            print(f"Fold {fold} R²: {r2:.4f}")
+            print(f"R²: {r2:.4f}")
         
         fold += 1
 
@@ -105,7 +106,7 @@ class MetabolicNN(nn.Module):
     def forward(self, x):
         return self.model(x)
     
-def plot_loss_curves(train_losses, test_losses, save_path="./pics/training_curve.png", log_scale=True):
+def plot_loss_curves(train_losses, test_losses, save_path, log_scale=True):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label="Training Loss")
@@ -127,7 +128,7 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
     fig, axs = plt.subplots(2, 2, figsize=(12, 10))
     
     # Actual vs Predicted
-    axs[0, 0].scatter(y_true, y_pred, alpha=0.2, s=10)
+    axs[0, 0].scatter(y_true, y_pred, alpha=0.1, s=10)
     axs[0, 0].plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'k--', lw=2)
     axs[0, 0].set_title(f'Actual vs Predicted: {label}')
     axs[0, 0].set_xlabel('Actual')
@@ -135,7 +136,7 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
     axs[0, 0].grid(True)
 
     # Residuals plot
-    axs[0, 1].scatter(y_true, residuals, alpha=0.5)
+    axs[0, 1].scatter(y_true, residuals, alpha=0.2)
     axs[0, 1].axhline(y=0, color='r', linestyle='-')
     axs[0, 1].set_title(f'Residuals: {label}')
     axs[0, 1].set_xlabel('Actual')
@@ -161,7 +162,53 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
     plt.savefig(save_path)
     plt.close()
 
-def plot_feature_importance(model, feature_names):
+def save_individual_diagnostic_plots(y_true, y_pred, label, save_path):
+    """Save individual diagnostic plots separately"""
+    residuals = y_true - y_pred
+
+    # Actual vs Predicted
+    plt.figure(figsize=(12, 10))
+    plt.scatter(y_true, y_pred, alpha=0.1, s=10)
+    plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'k--', lw=2)
+    plt.xlabel('Actual')
+    plt.ylabel('Predicted')
+    plt.title(f'Actual vs Predicted: {label}')
+    plt.grid(True)
+    plt.savefig(f"{save_path}_{label}_actual_vs_pred.png")
+    plt.close()
+
+    # Residuals plot
+    plt.figure(figsize=(12, 10))
+    plt.scatter(y_true, residuals, alpha=0.2)
+    plt.axhline(y=0, color='r', linestyle='-')
+    plt.xlabel('Actual')
+    plt.ylabel('Residuals')
+    plt.title(f'Residuals: {label}')
+    plt.grid(True)
+    plt.savefig(f"{save_path}_{label}_residuals.png")
+    plt.close()
+
+    # Error distribution
+    plt.figure(figsize=(12, 10))
+    sns.histplot(residuals, kde=True)
+    plt.xlabel('Prediction Error')
+    plt.ylabel('Frequency')
+    plt.title(f'Error Distribution: {label}')
+    plt.grid(True)
+    plt.savefig(f"{save_path}_{label}_error_dist.png")
+    plt.close()
+
+    # Histogram of actual values
+    plt.figure(figsize=(12, 10))
+    sns.histplot(y_true, kde=True, color='g')
+    plt.xlabel('Actual Value')
+    plt.ylabel('Frequency')
+    plt.title(f'Actual Value Distribution: {label}')
+    plt.grid(True)
+    plt.savefig(f"{save_path}_{label}_actual_dist.png")
+    plt.close()
+
+def plot_feature_importance(model, feature_names, save_path):
     """Visualize feature importance using first-layer weights"""
     weights = model.model[0].weight.data.numpy()
     importance = np.mean(np.abs(weights), axis=0)
@@ -172,7 +219,7 @@ def plot_feature_importance(model, feature_names):
     plt.xlabel('Features')
     plt.ylabel('Average Absolute Weight')
     plt.title('Feature Importance from First Layer Weights')
-    plt.savefig('./pics/feature_importance.png')
+    plt.savefig(save_path)
     plt.close()
 
 X, y, input_cols = load_and_preprocess_data(datafile)
@@ -180,7 +227,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-cv_scores = run_cross_validation(X_train, y_train, input_cols, k=5, epochs=300)
+cv_scores = run_cross_validation(X_train, y_train, k=5, epochs=300)
 
 # Train Final Model on entire training set
 x_scaler = StandardScaler().fit(X_train)
@@ -202,7 +249,12 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 train_losses = []
 test_losses = []
 
-epochs = 500
+print("\nTrain Final Model on entire training set:")
+epochs = 5000
+
+best_test_loss = float('inf')
+best_epoch = -1
+
 for epoch in range(epochs):
     model.train()
     optimizer.zero_grad()
@@ -218,9 +270,15 @@ for epoch in range(epochs):
         test_outputs = model(X_test_tensor)
         test_loss = criterion(test_outputs, y_test_tensor).item()
         test_losses.append(test_loss)
+    
+    if test_loss < best_test_loss:
+        best_test_loss = test_loss
+        best_epoch = epoch
 
     if (epoch+1) % 50 == 0:
         print(f"Epoch {epoch+1}/{epochs}, Train Loss: {loss.item():.4f}, Test Loss: {test_loss:.4f}")
+
+print(f"Best test loss at epoch {best_epoch+1}: {best_test_loss:.4f}")
 
 # Evaluate final model on test set
 model.eval()
@@ -229,10 +287,16 @@ with torch.no_grad():
     test_preds = y_scaler.inverse_transform(test_preds_scaled)
     test_true = y_scaler.inverse_transform(y_test_tensor.numpy())
 
+
 output_labels = ['Biomass_Ecoli_core_flux']
 
+today = date.today().isoformat()
+pic_dir = f"./pics/{today}"
+os.makedirs(pic_dir, exist_ok=True)
+model_name = "ecoli_core_v1"
+
 # Plot training curves
-plot_loss_curves(train_losses, test_losses, './pics/training_curve.png')
+plot_loss_curves(train_losses, test_losses, f'{pic_dir}/{model_name}_training_curve.png')
 
 for i, label in enumerate(output_labels):
     actual = test_true[:, i]
@@ -240,15 +304,16 @@ for i, label in enumerate(output_labels):
 
     plot_diagnostics_2x2(actual, predicted,
                          label,
-                         f'./pics/diagnostics_{label}.png')
+                         f'{pic_dir}/{model_name}_diagnostics_{label}.png')
+    save_individual_diagnostic_plots(actual, predicted, label, f'{pic_dir}/{model_name}')
 
 # Plot feature importance
-plot_feature_importance(model, input_cols)
+plot_feature_importance(model, input_cols, f'{pic_dir}/{model_name}_feature_importance.png')
 
-torch.save(model.state_dict(), "./models/metabolic_nn.pth")
+torch.save(model.state_dict(), f"./models/{model_name}_metabolic_nn.pth")
 import joblib
-joblib.dump(x_scaler, "./models/input_scaler.pkl")
-joblib.dump(y_scaler, "./models/output_scaler.pkl")
+joblib.dump(x_scaler, f"./models/{model_name}_input_scaler.pkl")
+joblib.dump(y_scaler, f"./models/{model_name}_output_scaler.pkl")
 
 print("Model and scalers saved.")
 
