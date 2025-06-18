@@ -2,7 +2,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score
 import numpy as np
@@ -34,29 +34,65 @@ def load_and_preprocess_data(filename):
 
     X = df[input_cols].values.astype(np.float32)
     y = df[output_cols].values.astype(np.float32)
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Normalize inputs and outputs
-    x_scaler = StandardScaler().fit(X_train)
-    y_scaler = StandardScaler().fit(y_train)
+    return X, y, input_cols
 
-    X_train = x_scaler.transform(X_train)
-    X_test = x_scaler.transform(X_test)
-    y_train = y_scaler.transform(y_train)
-    y_test = y_scaler.transform(y_test)
+def run_cross_validation(X_train, y_train, input_cols, k=5, epochs=300):
+    kf = KFold(n_splits=k, shuffle=True, random_state=42)
+    r2_scores = []
+    fold = 1
 
-    # Convert to PyTorch tensors
-    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
-    y_train_tensor = torch.tensor(y_train, dtype=torch.float32)
-    X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
-    y_test_tensor = torch.tensor(y_test, dtype=torch.float32)
+    for train_idx, val_idx in kf.split(X_train):
+        print(f"\nFold {fold}/{k}")
+        X_train_fold, X_val_fold = X_train[train_idx], X_train[val_idx]
+        y_train_fold, y_val_fold = y_train[train_idx], y_train[val_idx]
 
-    return X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, x_scaler, y_scaler, input_cols
+        # Scale data per fold
+        x_scaler_fold = StandardScaler().fit(X_train_fold)
+        y_scaler_fold = StandardScaler().fit(y_train_fold)
+        X_train_fold_scaled = x_scaler_fold.transform(X_train_fold)
+        X_val_fold_scaled = x_scaler_fold.transform(X_val_fold)
+        y_train_fold_scaled = y_scaler_fold.transform(y_train_fold)
+        y_val_fold_scaled = y_scaler_fold.transform(y_val_fold)
+
+        # Convert to tensors
+        X_train_tensor = torch.tensor(X_train_fold_scaled, dtype=torch.float32)
+        y_train_tensor = torch.tensor(y_train_fold_scaled, dtype=torch.float32)
+        X_val_tensor = torch.tensor(X_val_fold_scaled, dtype=torch.float32)
+        y_val_tensor = torch.tensor(y_val_fold_scaled, dtype=torch.float32)
+
+        # Initialize model
+        model = MetabolicNN(input_size=X_train_fold.shape[1])
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+        # Train model
+        for epoch in range(epochs):
+            model.train()
+            optimizer.zero_grad()
+            outputs = model(X_train_tensor)
+            loss = criterion(outputs, y_train_tensor)
+            loss.backward()
+            optimizer.step()
+
+        # Validate
+        model.eval()
+        with torch.no_grad():
+            preds = model(X_val_tensor).numpy()
+            preds_unscaled = y_scaler_fold.inverse_transform(preds)
+            true_unscaled = y_scaler_fold.inverse_transform(y_val_tensor.numpy())
+            r2 = r2_score(true_unscaled, preds_unscaled)
+            r2_scores.append(r2)
+            print(f"Fold {fold} R²: {r2:.4f}")
+        
+        fold += 1
+
+    print(f"\nCross-Validation R²: {np.mean(r2_scores):.4f} ± {np.std(r2_scores):.4f}")
+    return r2_scores
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
-    def __init__(self, input_size=20, hidden_size=256, output_size=1):
+    def __init__(self, input_size=20, hidden_size=128, output_size=1):
         super(MetabolicNN, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -139,16 +175,30 @@ def plot_feature_importance(model, feature_names):
     plt.savefig('./pics/feature_importance.png')
     plt.close()
 
-X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, x_scaler, y_scaler, input_cols = load_and_preprocess_data(datafile)
+X, y, input_cols = load_and_preprocess_data(datafile)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
-model = MetabolicNN()
+cv_scores = run_cross_validation(X_train, y_train, input_cols, k=5, epochs=300)
+
+# Train Final Model on entire training set
+x_scaler = StandardScaler().fit(X_train)
+y_scaler = StandardScaler().fit(y_train)
+X_train_scaled = x_scaler.transform(X_train)
+X_test_scaled = x_scaler.transform(X_test)
+y_train_scaled = y_scaler.transform(y_train)
+y_test_scaled = y_scaler.transform(y_test)
+
+X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train_scaled, dtype=torch.float32)
+X_test_tensor = torch.tensor(X_test_scaled, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test_scaled, dtype=torch.float32)
+
+model = MetabolicNN(input_size=X_train.shape[1])
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Create models directory if it doesn't exist
-os.makedirs("./models", exist_ok=True)
-
-# Train the model
 train_losses = []
 test_losses = []
 
@@ -160,9 +210,9 @@ for epoch in range(epochs):
     loss = criterion(outputs, y_train_tensor)
     loss.backward()
     optimizer.step()
-
     train_losses.append(loss.item())
 
+    # Validation on test set
     model.eval()
     with torch.no_grad():
         test_outputs = model(X_test_tensor)
@@ -172,6 +222,8 @@ for epoch in range(epochs):
     if (epoch+1) % 50 == 0:
         print(f"Epoch {epoch+1}/{epochs}, Train Loss: {loss.item():.4f}, Test Loss: {test_loss:.4f}")
 
+# Evaluate final model on test set
+model.eval()
 with torch.no_grad():
     test_preds_scaled = model(X_test_tensor).numpy()
     test_preds = y_scaler.inverse_transform(test_preds_scaled)
