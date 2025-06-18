@@ -5,35 +5,32 @@ import torch.optim as optim
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score
-from sklearn.linear_model import LinearRegression
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 
-datafile = "./data/training_data_18264_samples.csv"
+datafile = "./data/2025-06-17_training_data_49280_samples.csv"
 
 def load_and_preprocess_data(filename):
     """Load and preprocess the training data"""
-    df = pd.read_csv(filename)
-    print(f"\nLoaded data with {len(df)} samples from {filename}")
-    print(df[['glucose_uptake', 'oxygen_uptake', 'ammonia_uptake', 'phosphate_uptake']].describe())
-    print(df[['EX_co2_e_flux', 'EX_h2o_e_flux', 'EX_h_e_flux', 'Biomass_Ecoli_core_flux']].describe())
-    print()
-    
     input_cols = [
-        'glucose_uptake',
-        'oxygen_uptake',
-        'ammonia_uptake',
-        'phosphate_uptake',
-
+        'EX_glc__D_e', 'EX_fru_e', 'EX_lac__D_e', 'EX_pyr_e', 'EX_ac_e',
+        'EX_akg_e', 'EX_succ_e', 'EX_fum_e', 'EX_mal__L_e', 'EX_etoh_e',
+        'EX_acald_e', 'EX_for_e', 'EX_gln__L_e', 'EX_glu__L_e',
+        'EX_co2_e', 'EX_h_e', 'EX_h2o_e', 'EX_nh4_e', 'EX_o2_e', 'EX_pi_e'
     ]
+
     output_cols = [
-        'EX_co2_e_flux',
-        'EX_h2o_e_flux',
-        'EX_h_e_flux',
+        #'EX_co2_e_flux', 'EX_h_e_flux', 'EX_h2o_e_flux',
+        #'EX_nh4_e_flux', 'EX_o2_e_flux', 'EX_pi_e_flux',
         'Biomass_Ecoli_core_flux'
     ]
+    df = pd.read_csv(filename)
+
+    # Fill missing inputs with 0 (i.e., not uptaken)
+    df[input_cols] = df[input_cols].fillna(0)
+    print(f"\nLoaded data with {len(df)} samples from {filename}")
 
     X = df[input_cols].values.astype(np.float32)
     y = df[output_cols].values.astype(np.float32)
@@ -55,11 +52,11 @@ def load_and_preprocess_data(filename):
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
     y_test_tensor = torch.tensor(y_test, dtype=torch.float32)
 
-    return X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, x_scaler, y_scaler
+    return X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, x_scaler, y_scaler, input_cols
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
-    def __init__(self, input_size=4, hidden_size=256, output_size=4):
+    def __init__(self, input_size=20, hidden_size=256, output_size=1):
         super(MetabolicNN, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -72,11 +69,13 @@ class MetabolicNN(nn.Module):
     def forward(self, x):
         return self.model(x)
     
-def plot_loss_curves(train_losses, test_losses, save_path="./pics/training_curve.png"):
+def plot_loss_curves(train_losses, test_losses, save_path="./pics/training_curve.png", log_scale=True):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     plt.figure(figsize=(10, 5))
     plt.plot(train_losses, label="Training Loss")
     plt.plot(test_losses, label="Test Loss")
+    if log_scale:
+        plt.yscale('log')
     plt.xlabel("Epoch")
     plt.ylabel("MSE Loss")
     plt.title("Training and Test Loss")
@@ -88,7 +87,6 @@ def plot_loss_curves(train_losses, test_losses, save_path="./pics/training_curve
 def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
     """Creates a 2x2 matrix of plots: actual vs predicted, residuals, error distribution, and histogram of actuals"""
     residuals = y_true - y_pred
-    errors = residuals
 
     fig, axs = plt.subplots(2, 2, figsize=(12, 10))
     
@@ -109,7 +107,7 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
     axs[0, 1].grid(True)
 
     # Error distribution
-    sns.histplot(errors, kde=True, ax=axs[1, 0], legend=False)
+    sns.histplot(residuals, kde=True, ax=axs[1, 0], legend=False)
     axs[1, 0].set_title(f'Prediction Error Distribution: {label}')
     axs[1, 0].set_xlabel('Prediction Error')
     axs[1, 0].set_ylabel('Frequency')
@@ -132,7 +130,8 @@ def plot_feature_importance(model, feature_names):
     weights = model.model[0].weight.data.numpy()
     importance = np.mean(np.abs(weights), axis=0)
     
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(14, 8))
+    plt.xticks(rotation=45, ha='right')
     plt.bar(feature_names, importance)
     plt.xlabel('Features')
     plt.ylabel('Average Absolute Weight')
@@ -140,7 +139,7 @@ def plot_feature_importance(model, feature_names):
     plt.savefig('./pics/feature_importance.png')
     plt.close()
 
-X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, x_scaler, y_scaler = load_and_preprocess_data(datafile)
+X_train_tensor, y_train_tensor, X_test_tensor, y_test_tensor, x_scaler, y_scaler, input_cols = load_and_preprocess_data(datafile)
 
 model = MetabolicNN()
 criterion = nn.MSELoss()
@@ -170,7 +169,7 @@ for epoch in range(epochs):
         test_loss = criterion(test_outputs, y_test_tensor).item()
         test_losses.append(test_loss)
 
-    if (epoch+1) % 100 == 0:
+    if (epoch+1) % 50 == 0:
         print(f"Epoch {epoch+1}/{epochs}, Train Loss: {loss.item():.4f}, Test Loss: {test_loss:.4f}")
 
 with torch.no_grad():
@@ -178,7 +177,7 @@ with torch.no_grad():
     test_preds = y_scaler.inverse_transform(test_preds_scaled)
     test_true = y_scaler.inverse_transform(y_test_tensor.numpy())
 
-output_labels = ['EX_co2_e_flux', 'EX_h2o_e_flux', 'EX_h_e_flux', 'Biomass_Ecoli_core_flux']
+output_labels = ['Biomass_Ecoli_core_flux']
 
 # Plot training curves
 plot_loss_curves(train_losses, test_losses, './pics/training_curve.png')
@@ -191,8 +190,8 @@ for i, label in enumerate(output_labels):
                          label,
                          f'./pics/diagnostics_{label}.png')
 
-# 5. Plot feature importance
-plot_feature_importance(model, ['Glucose Uptake', 'Oxygen Uptake', 'Ammonia Uptake', 'Phosphate Uptake'])
+# Plot feature importance
+plot_feature_importance(model, input_cols)
 
 torch.save(model.state_dict(), "./models/metabolic_nn.pth")
 import joblib
