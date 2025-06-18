@@ -91,6 +91,14 @@ def run_cross_validation(X_train, y_train, k=5, epochs=300):
     print(f"\nCross-Validation R²: {np.mean(r2_scores):.4f} ± {np.std(r2_scores):.4f}")
     return r2_scores
 
+def track_gradient_norms(model):
+    total_norm = 0.0
+    for p in model.parameters():
+        if p.grad is not None:
+            param_norm = p.grad.data.norm(2)
+            total_norm += param_norm.item() ** 2
+    return total_norm ** 0.5
+
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
     def __init__(self, input_size=20, hidden_size=128, output_size=1):
@@ -108,7 +116,7 @@ class MetabolicNN(nn.Module):
     
 def plot_loss_curves(train_losses, test_losses, save_path, log_scale=True):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    plt.figure(figsize=(10, 5))
+    plt.figure()
     plt.plot(train_losses, label="Training Loss")
     plt.plot(test_losses, label="Test Loss")
     if log_scale:
@@ -119,19 +127,19 @@ def plot_loss_curves(train_losses, test_losses, save_path, log_scale=True):
     plt.legend()
     plt.savefig(save_path)
     plt.close()
-    print(f"\nTraining curve saved to {save_path}")
+    #print(f"\nTraining curve saved to {save_path}")
     
 def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
-    """Creates a 2x2 matrix of plots: actual vs predicted, residuals, error distribution, and histogram of actuals"""
+    """Creates a 2x2 matrix of plots: true vs predicted, residuals, error distribution, and histogram of actuals"""
     residuals = y_true - y_pred
 
     fig, axs = plt.subplots(2, 2, figsize=(12, 10))
     
     # Actual vs Predicted
-    axs[0, 0].scatter(y_true, y_pred, alpha=0.1, s=10)
+    axs[0, 0].scatter(y_true, y_pred, alpha=0.2, s=5, color='royalblue')
     axs[0, 0].plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'k--', lw=2)
-    axs[0, 0].set_title(f'Actual vs Predicted: {label}')
-    axs[0, 0].set_xlabel('Actual')
+    axs[0, 0].set_title(f'True vs Predicted: {label}')
+    axs[0, 0].set_xlabel('True value')
     axs[0, 0].set_ylabel('Predicted')
     axs[0, 0].grid(True)
 
@@ -139,7 +147,7 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
     axs[0, 1].scatter(y_true, residuals, alpha=0.2)
     axs[0, 1].axhline(y=0, color='r', linestyle='-')
     axs[0, 1].set_title(f'Residuals: {label}')
-    axs[0, 1].set_xlabel('Actual')
+    axs[0, 1].set_xlabel('True value')
     axs[0, 1].set_ylabel('Residuals')
     axs[0, 1].grid(True)
 
@@ -152,8 +160,8 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
 
     # Histogram of actual values
     sns.histplot(y_true, kde=True, ax=axs[1, 1], color='g', legend=False)
-    axs[1, 1].set_title(f'Actual Value Distribution: {label}')
-    axs[1, 1].set_xlabel('Actual Value')
+    axs[1, 1].set_title(f'True Value Distribution: {label}')
+    axs[1, 1].set_xlabel('True Value')
     axs[1, 1].set_ylabel('Frequency')
     axs[1, 1].grid(True)
 
@@ -167,21 +175,21 @@ def save_individual_diagnostic_plots(y_true, y_pred, label, save_path):
     residuals = y_true - y_pred
 
     # Actual vs Predicted
-    plt.figure(figsize=(12, 10))
-    plt.scatter(y_true, y_pred, alpha=0.1, s=10)
+    plt.figure()
+    plt.scatter(y_true, y_pred, alpha=0.2, s=10, color='royalblue')
     plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'k--', lw=2)
-    plt.xlabel('Actual')
+    plt.xlabel('True value')
     plt.ylabel('Predicted')
-    plt.title(f'Actual vs Predicted: {label}')
+    plt.title(f'True vs Predicted: {label}')
     plt.grid(True)
-    plt.savefig(f"{save_path}_{label}_actual_vs_pred.png")
+    plt.savefig(f"{save_path}_{label}_true_vs_pred.png")
     plt.close()
 
     # Residuals plot
-    plt.figure(figsize=(12, 10))
+    plt.figure()
     plt.scatter(y_true, residuals, alpha=0.2)
     plt.axhline(y=0, color='r', linestyle='-')
-    plt.xlabel('Actual')
+    plt.xlabel('True value')
     plt.ylabel('Residuals')
     plt.title(f'Residuals: {label}')
     plt.grid(True)
@@ -189,7 +197,7 @@ def save_individual_diagnostic_plots(y_true, y_pred, label, save_path):
     plt.close()
 
     # Error distribution
-    plt.figure(figsize=(12, 10))
+    plt.figure()
     sns.histplot(residuals, kde=True)
     plt.xlabel('Prediction Error')
     plt.ylabel('Frequency')
@@ -199,13 +207,13 @@ def save_individual_diagnostic_plots(y_true, y_pred, label, save_path):
     plt.close()
 
     # Histogram of actual values
-    plt.figure(figsize=(12, 10))
+    plt.figure()
     sns.histplot(y_true, kde=True, color='g')
-    plt.xlabel('Actual Value')
+    plt.xlabel('True value')
     plt.ylabel('Frequency')
-    plt.title(f'Actual Value Distribution: {label}')
+    plt.title(f'True Value Distribution: {label}')
     plt.grid(True)
-    plt.savefig(f"{save_path}_{label}_actual_dist.png")
+    plt.savefig(f"{save_path}_{label}_true_dist.png")
     plt.close()
 
 def plot_feature_importance(model, feature_names, save_path):
@@ -213,14 +221,30 @@ def plot_feature_importance(model, feature_names, save_path):
     weights = model.model[0].weight.data.numpy()
     importance = np.mean(np.abs(weights), axis=0)
     
-    plt.figure(figsize=(14, 8))
-    plt.xticks(rotation=45, ha='right')
-    plt.bar(feature_names, importance)
-    plt.xlabel('Features')
-    plt.ylabel('Average Absolute Weight')
-    plt.title('Feature Importance from First Layer Weights')
+    plt.figure(figsize=(14, 13))
+    plt.xticks(rotation=45, ha='right', fontsize=14)
+    plt.yticks(fontsize=16)
+    plt.bar(feature_names, importance, color='seagreen')
+    plt.xlabel('Features', fontsize=18)
+    plt.ylabel('Average Absolute Weight', fontsize=18)
+    plt.title('Feature Importance from First Layer Weights', fontsize=20)
     plt.savefig(save_path)
     plt.close()
+
+def plot_gradient_norms(gradient_norms, save_path=None):
+    plt.figure()
+    plt.plot(gradient_norms)
+    plt.xlabel("Epoch")
+    plt.ylabel("Gradient Norm (L2)")
+    plt.title("Gradient Norms Over Epochs")
+    plt.grid(True)
+    if save_path:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path)
+        plt.close()
+        #print(f"Gradient norm plot saved to {save_path}")
+    else:
+        plt.show()
 
 X, y, input_cols = load_and_preprocess_data(datafile)
 X_train, X_test, y_train, y_test = train_test_split(
@@ -248,9 +272,10 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 train_losses = []
 test_losses = []
+gradient_norms = []
 
 print("\nTrain Final Model on entire training set:")
-epochs = 5000
+epochs = 500
 
 best_test_loss = float('inf')
 best_epoch = -1
@@ -261,6 +286,7 @@ for epoch in range(epochs):
     outputs = model(X_train_tensor)
     loss = criterion(outputs, y_train_tensor)
     loss.backward()
+    gradient_norms.append(track_gradient_norms(model))
     optimizer.step()
     train_losses.append(loss.item())
 
@@ -307,8 +333,13 @@ for i, label in enumerate(output_labels):
                          f'{pic_dir}/{model_name}_diagnostics_{label}.png')
     save_individual_diagnostic_plots(actual, predicted, label, f'{pic_dir}/{model_name}')
 
-# Plot feature importance
 plot_feature_importance(model, input_cols, f'{pic_dir}/{model_name}_feature_importance.png')
+
+plot_gradient_norms(gradient_norms, f"{pic_dir}/{model_name}_gradient_norms.png")
+
+for i, label in enumerate(output_labels):
+    r2 = r2_score(test_true[:, i], test_preds[:, i])
+    print(f"{label}: R² = {r2:.4f}")
 
 torch.save(model.state_dict(), f"./models/{model_name}_metabolic_nn.pth")
 import joblib
@@ -317,7 +348,13 @@ joblib.dump(y_scaler, f"./models/{model_name}_output_scaler.pkl")
 
 print("Model and scalers saved.")
 
-for i, label in enumerate(output_labels):
-    r2 = r2_score(test_true[:, i], test_preds[:, i])
-    print(f"{label}: R² = {r2:.4f}")
-
+'''
+for i, name in enumerate(input_cols):
+    plt.figure()
+    plt.scatter(X_test[:, i], test_true[:, 0] - test_preds[:, 0], alpha=0.2)
+    plt.xlabel(name)
+    plt.ylabel("Residual")
+    plt.title(f"Residual vs. {name}")
+    plt.grid(True)
+    plt.show()
+'''
