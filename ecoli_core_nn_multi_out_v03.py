@@ -118,15 +118,17 @@ def track_gradient_norms(model):
     
 def plot_loss_curves(train_losses, test_losses, save_path, log_scale=True):
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    plt.figure()
+    plt.figure(figsize=(14, 10))
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
     plt.plot(train_losses, label="Training Loss")
     plt.plot(test_losses, label="Test Loss")
     if log_scale:
         plt.yscale('log')
-    plt.xlabel("Epoch")
-    plt.ylabel("MSE Loss")
-    plt.title("Training and Test Loss")
-    plt.legend()
+    plt.xlabel("Epoch", fontsize=18)
+    plt.ylabel("MSE Loss", fontsize=18)
+    plt.title("Training and Test Loss", fontsize=20)
+    plt.legend(fontsize=16)
     plt.savefig(save_path)
     plt.close()
     #print(f"\nTraining curve saved to {save_path}")
@@ -146,7 +148,7 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
     axs[0, 0].grid(True)
 
     # Residuals plot
-    axs[0, 1].scatter(y_true, residuals, alpha=0.2)
+    axs[0, 1].scatter(y_true, residuals, alpha=0.15, color='darkorange')
     axs[0, 1].axhline(y=0, color='r', linestyle='-')
     axs[0, 1].set_title(f'Residuals: {label}')
     axs[0, 1].set_xlabel('True value')
@@ -154,14 +156,14 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
     axs[0, 1].grid(True)
 
     # Error distribution
-    sns.histplot(residuals, kde=True, ax=axs[1, 0], legend=False)
+    sns.histplot(residuals, kde=True, ax=axs[1, 0], legend=False, color='indianred')
     axs[1, 0].set_title(f'Prediction Error Distribution: {label}')
     axs[1, 0].set_xlabel('Prediction Error')
     axs[1, 0].set_ylabel('Frequency')
     axs[1, 0].grid(True)
 
     # Histogram of actual values
-    sns.histplot(y_true, kde=True, ax=axs[1, 1], color='g', legend=False)
+    sns.histplot(y_true, kde=True, ax=axs[1, 1], legend=False, color='mediumseagreen')
     axs[1, 1].set_title(f'True Value Distribution: {label}')
     axs[1, 1].set_xlabel('True Value')
     axs[1, 1].set_ylabel('Frequency')
@@ -177,43 +179,51 @@ def save_individual_diagnostic_plots(y_true, y_pred, label, save_path):
     residuals = y_true - y_pred
 
     # Actual vs Predicted
-    plt.figure()
+    plt.figure(figsize=(14, 10))
     plt.scatter(y_true, y_pred, alpha=0.2, s=10, color='royalblue')
     plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'k--', lw=2)
-    plt.xlabel('True value')
-    plt.ylabel('Predicted')
-    plt.title(f'True vs Predicted: {label}')
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.xlabel('True value', fontsize=18)
+    plt.ylabel('Predicted', fontsize=18)
+    plt.title(f'True vs Predicted: {label}', fontsize=20)
     plt.grid(True)
     plt.savefig(f"{save_path}_{label}_true_vs_pred.png")
     plt.close()
 
     # Residuals plot
-    plt.figure()
-    plt.scatter(y_true, residuals, alpha=0.2)
+    plt.figure(figsize=(14, 10))
+    plt.scatter(y_true, residuals, alpha=0.2, color='darkorange')
     plt.axhline(y=0, color='r', linestyle='-')
-    plt.xlabel('True value')
-    plt.ylabel('Residuals')
-    plt.title(f'Residuals: {label}')
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.xlabel('True value', fontsize=18)
+    plt.ylabel('Residuals', fontsize=18)
+    plt.title(f'Residuals: {label}', fontsize=20)
     plt.grid(True)
     plt.savefig(f"{save_path}_{label}_residuals.png")
     plt.close()
 
     # Error distribution
-    plt.figure()
-    sns.histplot(residuals, kde=True)
-    plt.xlabel('Prediction Error')
-    plt.ylabel('Frequency')
-    plt.title(f'Error Distribution: {label}')
+    plt.figure(figsize=(14, 10))
+    sns.histplot(residuals, kde=True, color='indianred')
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.xlabel('Prediction Error', fontsize=18)
+    plt.ylabel('Frequency', fontsize=18)
+    plt.title(f'Error Distribution: {label}', fontsize=20)
     plt.grid(True)
     plt.savefig(f"{save_path}_{label}_error_dist.png")
     plt.close()
 
     # Histogram of actual values
-    plt.figure()
-    sns.histplot(y_true, kde=True, color='g')
-    plt.xlabel('True value')
-    plt.ylabel('Frequency')
-    plt.title(f'True Value Distribution: {label}')
+    plt.figure(figsize=(14, 10))
+    sns.histplot(y_true, kde=True, color='mediumseagreen')
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.xlabel('True value', fontsize=18)
+    plt.ylabel('Frequency', fontsize=18)
+    plt.title(f'True Value Distribution: {label}', fontsize=20)
     plt.grid(True)
     plt.savefig(f"{save_path}_{label}_true_dist.png")
     plt.close()
@@ -234,11 +244,13 @@ def plot_feature_importance(model, feature_names, save_path):
     plt.close()
 
 def plot_gradient_norms(gradient_norms, save_path=None):
-    plt.figure()
+    plt.figure(figsize=(14, 10))
     plt.plot(gradient_norms)
-    plt.xlabel("Epoch")
-    plt.ylabel("Gradient Norm (L2)")
-    plt.title("Gradient Norms Over Epochs")
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.xlabel("Epoch", fontsize=18)
+    plt.ylabel("Gradient Norm (L2)", fontsize=18)
+    plt.title("Gradient Norms Over Epochs", fontsize=20)
     plt.grid(True)
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -250,7 +262,7 @@ def plot_gradient_norms(gradient_norms, save_path=None):
 
 def plot_standardized_errors(y_true, y_pred, output_labels, y_scaler, save_path):
     """Plot standardized errors across all outputs"""
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(14, 10))
     
     for i, label in enumerate(output_labels):
         # Calculate standardized residuals (original units / std of training data)
@@ -260,10 +272,12 @@ def plot_standardized_errors(y_true, y_pred, output_labels, y_scaler, save_path)
         sns.kdeplot(residuals, label=f"{label} (σ={std:.2f})", fill=True, alpha=0.15)
     
     plt.axvline(0, color='r', linestyle='--')
-    plt.xlabel('Standardized Residuals (Original Units / σ)')
-    plt.ylabel('Density')
-    plt.title('Standardized Error Distributions Across Outputs')
-    plt.legend()
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    plt.xlabel('Standardized Residuals (Original Units / σ)', fontsize=18)
+    plt.ylabel('Density', fontsize=18)
+    plt.title('Standardized Error Distributions Across Outputs', fontsize=20)
+    plt.legend(fontsize=16)
     plt.grid(True)
     plt.savefig(save_path)
     plt.close()
@@ -363,7 +377,7 @@ for i, label in enumerate(output_labels):
 
 plot_feature_importance(model, input_cols, f'{pic_dir}/{model_name}_feature_importance.png')
 
-#plot_gradient_norms(gradient_norms, f"{pic_dir}/{model_name}_gradient_norms.png")
+plot_gradient_norms(gradient_norms, f"{pic_dir}/{model_name}_gradient_norms.png")
 
 plot_standardized_errors(test_true, test_preds, output_labels, y_scaler,
                          f'{pic_dir}/{model_name}_standardized_errors.png')
