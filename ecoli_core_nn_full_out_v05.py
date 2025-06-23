@@ -1,4 +1,4 @@
-# Difference to v03: all model reactions
+# Difference to v04: problematicfluxes
 
 import pandas as pd
 import torch
@@ -17,7 +17,7 @@ datafile = "./data/2025-06-23_full_training_data_149261_samples.csv"
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
-    def __init__(self, input_size=20, hidden_size=256, output_size=95):
+    def __init__(self, input_size=20, hidden_size=1024, output_size=95):
         super(MetabolicNN, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -151,18 +151,17 @@ def load_and_preprocess_data(filename):
     df[input_cols] = df[input_cols].fillna(0)
 
     output_stds = df[output_cols].std()
-    valid_outputs = output_stds[output_stds > 0.1].index.tolist()
-    removed_outputs = output_stds[output_stds <= 0.1].index.tolist()
-    print(f"Original outputs: {len(output_cols)}, Valid outputs: {len(valid_outputs)}")
-    print("Removed outputs (std ≤ 0.1):")
-    print(removed_outputs)
-
+    problematic_low_std = output_stds[output_stds <= 0.1].index.tolist()
+    
     print(f"\nLoaded data with {len(df)} samples from {filename}")
+    print(f"Total outputs: {len(output_cols)}")
+    print(f"Outputs with std ≤ 0.1: {len(problematic_low_std)}")
+    print(problematic_low_std)
 
     X = df[input_cols].values.astype(np.float32)
-    y = df[valid_outputs].values.astype(np.float32)
+    y = df[output_cols].values.astype(np.float32)
 
-    return X, y, input_cols, valid_outputs
+    return X, y, input_cols, output_cols
 
 def run_cross_validation(X_train, y_train, k=5, epochs=300):
     kf = KFold(n_splits=k, shuffle=True, random_state=42)
@@ -193,7 +192,7 @@ def run_cross_validation(X_train, y_train, k=5, epochs=300):
             input_size=X_train_fold.shape[1],
             output_size=y_train_fold_scaled.shape[1]
         )
-        criterion = nn.MSELoss()
+        criterion = nn.HuberLoss()
         optimizer = optim.Adam(model.parameters(), lr=0.001)
 
         # Train model
@@ -220,15 +219,19 @@ def run_cross_validation(X_train, y_train, k=5, epochs=300):
     print(f"\nCross-Validation R²: {np.mean(r2_scores):.4f} ± {np.std(r2_scores):.4f}")
     return r2_scores
 
-def identify_problematic_fluxes(y_train, output_cols, threshold=0.01):
-    problematic = []
+def identify_problematic_fluxes(y_train, output_cols, threshold=0.01, std_threshold=0.1):
+    problematic_indices = []
+    exception_fluxes = {'EX_for_e_flux'}
     for i, col in enumerate(output_cols):
-        if col.startswith('EX_'):
+        if col.startswith('EX_') and col not in exception_fluxes:
             continue
         zero_ratio = np.mean(np.abs(y_train[:, i]) < threshold)
-        if zero_ratio > 0.3:  # More than 30% near-zero
-            problematic.append(i)
-    return problematic
+        std_dev = np.std(y_train[:, i])
+        if zero_ratio > 0.3 or std_dev < std_threshold:
+            problematic_indices.append(i)
+    print(f"Fluxes with >30% near-zero values or low std: \n{[output_cols[i] for i in problematic_indices]}")
+    print(f"{len(problematic_indices)} in total")
+    return problematic_indices
 
 def track_gradient_norms(model):
     total_norm = 0.0
@@ -414,7 +417,6 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 problematic_indices = identify_problematic_fluxes(y_train, output_cols)
-print(f"Problematic fluxes: {[output_cols[i] for i in problematic_indices]}")
 
 #cv_scores = run_cross_validation(X_train, y_train, k=5, epochs=300)
 
@@ -437,7 +439,7 @@ model = MetabolicNN(
 )
 criterion = nn.MSELoss()
 #criterion = nn.HuberLoss()
-optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=1e-5)
+optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-5)
 
 train_losses = []
 test_losses = []
@@ -445,7 +447,7 @@ gradient_norms = []
 today = date.today().isoformat()
 
 print("\nTrain Final Model on entire training set:")
-epochs = 500
+epochs = 1000
 
 best_test_loss = float('inf')
 best_epoch = -1
@@ -487,7 +489,7 @@ with torch.no_grad():
 
 pic_dir = f"./pics/{today}"
 os.makedirs(pic_dir, exist_ok=True)
-model_name = "ecoli_core_v4"
+model_name = "ecoli_core_v5"
 
 # Plot training curves
 plot_loss_curves(train_losses, test_losses, f'{pic_dir}/{model_name}_training_curve.png')
