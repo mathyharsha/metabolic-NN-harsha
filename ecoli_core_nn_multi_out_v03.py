@@ -13,7 +13,7 @@ import os
 import seaborn as sns
 from datetime import date
 
-datafile = "./data/2025-06-17_training_data_49280_samples.csv"
+datafile = "./data/2025-06-23_training_data_49755_samples.csv"
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
@@ -128,6 +128,7 @@ def plot_loss_curves(train_losses, test_losses, save_path, log_scale=True):
     plt.xlabel("Epoch", fontsize=18)
     plt.ylabel("MSE Loss", fontsize=18)
     plt.title("Training and Test Loss", fontsize=20)
+    plt.grid(True)
     plt.legend(fontsize=16)
     plt.savefig(save_path)
     plt.close()
@@ -243,7 +244,7 @@ def plot_feature_importance(model, feature_names, save_path):
     plt.savefig(save_path)
     plt.close()
 
-def plot_gradient_norms(gradient_norms, save_path=None):
+def plot_gradient_norms(gradient_norms, save_path=None, log_scale=True):
     plt.figure(figsize=(14, 10))
     plt.plot(gradient_norms)
     plt.xticks(fontsize=16)
@@ -251,6 +252,8 @@ def plot_gradient_norms(gradient_norms, save_path=None):
     plt.xlabel("Epoch", fontsize=18)
     plt.ylabel("Gradient Norm (L2)", fontsize=18)
     plt.title("Gradient Norms Over Epochs", fontsize=20)
+    if log_scale:
+        plt.yscale('log')
     plt.grid(True)
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -313,7 +316,7 @@ gradient_norms = []
 today = date.today().isoformat()
 
 print("\nTrain Final Model on entire training set:")
-epochs = 1000
+epochs = 500
 
 best_test_loss = float('inf')
 best_epoch = -1
@@ -343,7 +346,7 @@ for epoch in range(epochs):
     if (epoch+1) % 50 == 0:
         print(f"Epoch {epoch+1}/{epochs}, Train Loss: {loss.item():.4f}, Test Loss: {test_loss:.4f}")
 
-print(f"Best test loss at epoch {best_epoch+1}: {best_test_loss:.4f}")
+print(f"Best test loss at epoch {best_epoch+1}: {best_test_loss:.4f}\n")
 
 # Evaluate final model on test set
 model.eval()
@@ -373,7 +376,7 @@ for i, label in enumerate(output_labels):
     plot_diagnostics_2x2(actual, predicted,
                          label,
                          f'{pic_dir}/{model_name}_diagnostics_{label}.png')
-    #save_individual_diagnostic_plots(actual, predicted, label, f'{pic_dir}/{model_name}')
+    save_individual_diagnostic_plots(actual, predicted, label, f'{pic_dir}/{model_name}')
 
 plot_feature_importance(model, input_cols, f'{pic_dir}/{model_name}_feature_importance.png')
 
@@ -391,4 +394,4 @@ import joblib
 joblib.dump(x_scaler, f"./models/{model_name}_input_scaler.pkl")
 joblib.dump(y_scaler, f"./models/{model_name}_output_scaler.pkl")
 
-print("Model and scalers saved.")
+print("\nModel and scalers saved.")
