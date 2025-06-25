@@ -1,4 +1,4 @@
-# Difference to v04: problematicfluxes
+# Difference to v04: identify constant and zero inflated fluxes
 
 import pandas as pd
 import torch
@@ -13,11 +13,11 @@ import os
 import seaborn as sns
 from datetime import date
 
-datafile = "./data/2025-06-23_full_training_data_149261_samples.csv"
+datafile = "./data/2025-06-25_full_training_data_99993_samples.csv"
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
-    def __init__(self, input_size=20, hidden_size=1024, output_size=95):
+    def __init__(self, input_size=20, hidden_size=128, output_size=95):
         super(MetabolicNN, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -150,13 +150,8 @@ def load_and_preprocess_data(filename):
     # Fill missing inputs with 0 (i.e., not uptaken)
     df[input_cols] = df[input_cols].fillna(0)
 
-    output_stds = df[output_cols].std()
-    problematic_low_std = output_stds[output_stds <= 0.1].index.tolist()
-    
     print(f"\nLoaded data with {len(df)} samples from {filename}")
     print(f"Total outputs: {len(output_cols)}")
-    print(f"Outputs with std ≤ 0.1: {len(problematic_low_std)}")
-    print(problematic_low_std)
 
     X = df[input_cols].values.astype(np.float32)
     y = df[output_cols].values.astype(np.float32)
@@ -219,6 +214,7 @@ def run_cross_validation(X_train, y_train, k=5, epochs=300):
     print(f"\nCross-Validation R²: {np.mean(r2_scores):.4f} ± {np.std(r2_scores):.4f}")
     return r2_scores
 
+'''
 def identify_problematic_fluxes(y_train, output_cols, threshold=0.01, std_threshold=0.1):
     problematic_indices = []
     exception_fluxes = {'EX_for_e_flux'}
@@ -232,6 +228,8 @@ def identify_problematic_fluxes(y_train, output_cols, threshold=0.01, std_thresh
     print(f"Fluxes with >30% near-zero values or low std: \n{[output_cols[i] for i in problematic_indices]}")
     print(f"{len(problematic_indices)} in total")
     return problematic_indices
+
+'''
 
 def track_gradient_norms(model):
     total_norm = 0.0
@@ -416,17 +414,38 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-problematic_indices = identify_problematic_fluxes(y_train, output_cols)
+# Identify constant outputs (low std) from training data
+output_stats = pd.DataFrame(y_train, columns=output_cols).agg(['mean', 'std'])
+low_std_outputs = output_stats.columns[output_stats.loc['std'] <= 0.1]
+non_low_std_outputs = [col for col in output_cols if col not in low_std_outputs]
+
+# Get indices for constant and non-constant outputs
+constant_indices = [output_cols.index(col) for col in low_std_outputs]
+non_constant_indices = [output_cols.index(col) for col in non_low_std_outputs]
+constant_values = output_stats.loc['mean', low_std_outputs]
+
+print(f"\nConstant outputs ({len(low_std_outputs)}):")
+print(low_std_outputs)
+print("Means of outputs with std ≤ 0.1:")
+print(constant_values)
+print(f"Non-constant outputs ({len(non_low_std_outputs)})")
+#print(non_low_std_outputs)
+
+# Predict only non-constant outputs
+y_train_non_constant = y_train[:, non_constant_indices]
+y_test_non_constant = y_test[:, non_constant_indices]
+
+#problematic_indices = identify_problematic_fluxes(y_train, output_cols)
 
 #cv_scores = run_cross_validation(X_train, y_train, k=5, epochs=300)
 
 # Train Final Model on entire training set
 x_scaler = StandardScaler().fit(X_train)
-y_scaler = StandardScaler().fit(y_train)
+y_scaler = StandardScaler().fit(y_train_non_constant)
 X_train_scaled = x_scaler.transform(X_train)
 X_test_scaled = x_scaler.transform(X_test)
-y_train_scaled = y_scaler.transform(y_train)
-y_test_scaled = y_scaler.transform(y_test)
+y_train_scaled = y_scaler.transform(y_train_non_constant)
+y_test_scaled = y_scaler.transform(y_test_non_constant)
 
 X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
 y_train_tensor = torch.tensor(y_train_scaled, dtype=torch.float32)
@@ -435,7 +454,7 @@ y_test_tensor = torch.tensor(y_test_scaled, dtype=torch.float32)
 
 model = MetabolicNN(
     input_size=X_train.shape[1],
-    output_size=y_train_scaled.shape[1]
+    output_size=len(non_constant_indices)
 )
 criterion = nn.MSELoss()
 #criterion = nn.HuberLoss()
@@ -447,7 +466,7 @@ gradient_norms = []
 today = date.today().isoformat()
 
 print("\nTrain Final Model on entire training set:")
-epochs = 1000
+epochs = 100
 
 best_test_loss = float('inf')
 best_epoch = -1
@@ -485,7 +504,18 @@ model.eval()
 with torch.no_grad():
     test_preds_scaled = model(X_test_tensor).numpy()
     test_preds = y_scaler.inverse_transform(test_preds_scaled)
-    test_true = y_scaler.inverse_transform(y_test_tensor.numpy())
+
+    # Create full prediction array
+    test_preds_full = np.zeros((len(X_test), len(output_cols)))
+
+    # Fill non-constant outputs with model predictions
+    test_preds_full[:, non_constant_indices] = test_preds
+    
+    # Fill constant outputs with precomputed mean values
+    test_preds_full[:, constant_indices] = constant_values
+
+    #test_true = y_scaler.inverse_transform(y_test_tensor.numpy())
+    test_true_full = y_test
 
 pic_dir = f"./pics/{today}"
 os.makedirs(pic_dir, exist_ok=True)
@@ -495,24 +525,28 @@ model_name = "ecoli_core_v5"
 plot_loss_curves(train_losses, test_losses, f'{pic_dir}/{model_name}_training_curve.png')
 
 for i, label in enumerate(output_cols):
-    actual = test_true[:, i]
-    predicted = test_preds[:, i]
+    actual = test_true_full[:, i]
+    predicted = test_preds_full[:, i]
 
     plot_diagnostics_2x2(actual, predicted,
                          label,
                          f'{pic_dir}/{model_name}_diagnostics_{label}.png')
     #save_individual_diagnostic_plots(actual, predicted, label, f'{pic_dir}/{model_name}')
 
-#plot_feature_importance(model, input_cols, f'{pic_dir}/{model_name}_feature_importance.png')
+plot_feature_importance(model, input_cols, f'{pic_dir}/{model_name}_feature_importance.png')
 
 plot_gradient_norms(gradient_norms, f"{pic_dir}/{model_name}_gradient_norms.png")
 
-#plot_standardized_errors(test_true, test_preds, output_labels, y_scaler,
-#                         f'{pic_dir}/{model_name}_standardized_errors.png')
-
 for i, label in enumerate(output_cols):
-    r2 = r2_score(test_true[:, i], test_preds[:, i])
-    print(f"{label}: R² = {r2:.4f}")
+    actual = test_true_full[:, i]
+    predicted = test_preds_full[:, i]
+    if label in low_std_outputs:
+        # Use Mean Absolute Error (MAE) for near-constant outputs (R2 numerically unstable)
+        mae = np.mean(np.abs(actual - predicted))
+        print(f"{label}: MAE = {mae:.4e} (near-constant output)")
+    else:
+        r2 = r2_score(actual, predicted)
+        print(f"{label}: R² = {r2:.4f}")
 
 torch.save(model.state_dict(), f"./models/{model_name}_metabolic_nn.pth")
 import joblib
