@@ -29,15 +29,11 @@ def generate_training_sample(subset, variable_sources, outputs):
         # Set subset uptakes
         for met in subset:
             # Uniform sampling:
-            rate = round(np.random.uniform(1, 10.0), 2) # mmol/gDW/hr
+            #rate = round(np.random.uniform(0.1, 10.0), 2) # mmol/gDW/hr
 
             # Sample rate log-uniformly between 1 and 10 mmol/gDW/hr:
-            #rate = round(float(10 ** np.random.uniform(0, 1)), 4)
+            rate = round(float(10 ** np.random.uniform(-1, 1)), 2)
             
-            # Skewed power transform
-            #skew = 3  # adjust skew (>1 favors higher values)
-            #exponent = np.random.uniform(0, 1) ** (1 / skew)
-            #rate = round(10 ** exponent, 4)
             model.reactions.get_by_id(met).lower_bound = -rate
             data[met] = rate
 

@@ -1,16 +1,16 @@
 import pandas as pd
 
-datafile = "./data/2025-06-23_full_training_data_149261_samples.csv"
+datafile = "./data/2025-06-25_full_training_data_99993_samples.csv"
 
 df = pd.read_csv(datafile)
 
-mean = df['ME1_flux'].mean()
-std = df['ME1_flux'].std()
+mean = df['ACKr_flux'].mean()
+std = df['ACKr_flux'].std()
 
-print(f"ME1_flux mean: {mean}")
-print(f"ME1_flux standard deviation: {std}")
+print(f"ACKr_flux mean: {mean}")
+print(f"ACKr_flux standard deviation: {std}")
 
-print(df['ME1_flux'])
+print(df['ACKr_flux'])
 
 def preprocess_zero_inflated(y_col, epsilon=1e-6):
     is_zero = (y_col.abs() < epsilon)
@@ -20,11 +20,13 @@ def preprocess_zero_inflated(y_col, epsilon=1e-6):
         'nonzero_ratio': 1 - is_zero.mean()
     }
 
-me1_stats = preprocess_zero_inflated(df['ME1_flux'])
-print(f"Non-zero ratio: {me1_stats['nonzero_ratio']:.4f}")
+stats = preprocess_zero_inflated(df['PPCK_flux'])
+print(f"Non-zero ratio: {stats['nonzero_ratio']:.4f}")
 
+'''
 mean = df['EX_for_e_flux'].mean()
 std = df['EX_for_e_flux'].std()
 
 print(f"EX_for_e_flux mean: {mean}")
 print(f"EX_for_e_flux standard deviation: {std}")
+'''

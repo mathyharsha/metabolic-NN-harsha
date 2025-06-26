@@ -13,11 +13,11 @@ import os
 import seaborn as sns
 from datetime import date
 
-datafile = "./data/2025-06-25_full_training_data_99993_samples.csv"
+datafile = "./data/2025-06-26_full_training_data_99973_samples.csv"
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
-    def __init__(self, input_size=20, hidden_size=128, output_size=95):
+    def __init__(self, input_size=20, hidden_size=256, output_size=95):
         super(MetabolicNN, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -138,13 +138,7 @@ def load_and_preprocess_data(filename):
         'TKT2_flux',
         'TPI_flux'
     ]
-    '''
-    output_cols = [
-        'EX_co2_e_flux', 'EX_h_e_flux', 'EX_h2o_e_flux',
-        'EX_nh4_e_flux', 'EX_o2_e_flux', 'EX_pi_e_flux',
-        'Biomass_Ecoli_core_flux'
-    ]
-    '''
+    
     df = pd.read_csv(filename)
 
     # Fill missing inputs with 0 (i.e., not uptaken)
@@ -214,22 +208,17 @@ def run_cross_validation(X_train, y_train, k=5, epochs=300):
     print(f"\nCross-Validation R²: {np.mean(r2_scores):.4f} ± {np.std(r2_scores):.4f}")
     return r2_scores
 
-'''
-def identify_problematic_fluxes(y_train, output_cols, threshold=0.01, std_threshold=0.1):
+def identify_zero_inflated_fluxes(y_train, output_cols, threshold=0.01):
     problematic_indices = []
-    exception_fluxes = {'EX_for_e_flux'}
     for i, col in enumerate(output_cols):
-        if col.startswith('EX_') and col not in exception_fluxes:
+        if col.startswith('EX_'):
             continue
         zero_ratio = np.mean(np.abs(y_train[:, i]) < threshold)
-        std_dev = np.std(y_train[:, i])
-        if zero_ratio > 0.3 or std_dev < std_threshold:
+        if zero_ratio > 0.3:
             problematic_indices.append(i)
-    print(f"Fluxes with >30% near-zero values or low std: \n{[output_cols[i] for i in problematic_indices]}")
+    print(f"Fluxes with >30% near-zero values\n{[output_cols[i] for i in problematic_indices]}")
     print(f"{len(problematic_indices)} in total")
     return problematic_indices
-
-'''
 
 def track_gradient_norms(model):
     total_norm = 0.0
@@ -424,18 +413,19 @@ constant_indices = [output_cols.index(col) for col in low_std_outputs]
 non_constant_indices = [output_cols.index(col) for col in non_low_std_outputs]
 constant_values = output_stats.loc['mean', low_std_outputs]
 
+print(f"Non-constant outputs: {len(non_low_std_outputs)}")
 print(f"\nConstant outputs ({len(low_std_outputs)}):")
 print(low_std_outputs)
 print("Means of outputs with std ≤ 0.1:")
 print(constant_values)
-print(f"Non-constant outputs ({len(non_low_std_outputs)})")
-#print(non_low_std_outputs)
 
 # Predict only non-constant outputs
 y_train_non_constant = y_train[:, non_constant_indices]
 y_test_non_constant = y_test[:, non_constant_indices]
 
-#problematic_indices = identify_problematic_fluxes(y_train, output_cols)
+# Find fluxes with many zeros
+filtered_output_cols = [output_cols[i] for i in non_constant_indices]
+zero_inflated_indices = identify_zero_inflated_fluxes(y_train_non_constant, filtered_output_cols)
 
 #cv_scores = run_cross_validation(X_train, y_train, k=5, epochs=300)
 
@@ -456,8 +446,8 @@ model = MetabolicNN(
     input_size=X_train.shape[1],
     output_size=len(non_constant_indices)
 )
-criterion = nn.MSELoss()
-#criterion = nn.HuberLoss()
+#criterion = nn.MSELoss()
+criterion = nn.HuberLoss()
 optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-5)
 
 train_losses = []
@@ -466,7 +456,7 @@ gradient_norms = []
 today = date.today().isoformat()
 
 print("\nTrain Final Model on entire training set:")
-epochs = 100
+epochs = 500
 
 best_test_loss = float('inf')
 best_epoch = -1
@@ -505,7 +495,6 @@ with torch.no_grad():
     test_preds_scaled = model(X_test_tensor).numpy()
     test_preds = y_scaler.inverse_transform(test_preds_scaled)
 
-    # Create full prediction array
     test_preds_full = np.zeros((len(X_test), len(output_cols)))
 
     # Fill non-constant outputs with model predictions
@@ -514,7 +503,6 @@ with torch.no_grad():
     # Fill constant outputs with precomputed mean values
     test_preds_full[:, constant_indices] = constant_values
 
-    #test_true = y_scaler.inverse_transform(y_test_tensor.numpy())
     test_true_full = y_test
 
 pic_dir = f"./pics/{today}"
