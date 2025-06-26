@@ -13,7 +13,7 @@ import os
 import seaborn as sns
 from datetime import date
 
-datafile = "./data/2025-06-26_full_training_data_99973_samples.csv"
+datafile = "./data/2025-06-26_full_training_data_99518_samples.csv"
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
@@ -152,73 +152,43 @@ def load_and_preprocess_data(filename):
 
     return X, y, input_cols, output_cols
 
-def run_cross_validation(X_train, y_train, k=5, epochs=300):
-    kf = KFold(n_splits=k, shuffle=True, random_state=42)
-    r2_scores = []
-    fold = 1
-
-    for train_idx, val_idx in kf.split(X_train):
-        print(f"\nFold {fold}/{k}:")
-        X_train_fold, X_val_fold = X_train[train_idx], X_train[val_idx]
-        y_train_fold, y_val_fold = y_train[train_idx], y_train[val_idx]
-
-        # Scale data per fold
-        x_scaler_fold = StandardScaler().fit(X_train_fold)
-        y_scaler_fold = StandardScaler().fit(y_train_fold)
-        X_train_fold_scaled = x_scaler_fold.transform(X_train_fold)
-        X_val_fold_scaled = x_scaler_fold.transform(X_val_fold)
-        y_train_fold_scaled = y_scaler_fold.transform(y_train_fold)
-        y_val_fold_scaled = y_scaler_fold.transform(y_val_fold)
-
-        # Convert to tensors
-        X_train_tensor = torch.tensor(X_train_fold_scaled, dtype=torch.float32)
-        y_train_tensor = torch.tensor(y_train_fold_scaled, dtype=torch.float32)
-        X_val_tensor = torch.tensor(X_val_fold_scaled, dtype=torch.float32)
-        y_val_tensor = torch.tensor(y_val_fold_scaled, dtype=torch.float32)
-
-        # Initialize model
-        model = MetabolicNN(
-            input_size=X_train_fold.shape[1],
-            output_size=y_train_fold_scaled.shape[1]
-        )
-        criterion = nn.HuberLoss()
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-        # Train model
-        for epoch in range(epochs):
-            model.train()
-            optimizer.zero_grad()
-            outputs = model(X_train_tensor)
-            loss = criterion(outputs, y_train_tensor)
-            loss.backward()
-            optimizer.step()
-
-        # Validate
-        model.eval()
-        with torch.no_grad():
-            preds = model(X_val_tensor).numpy()
-            preds_unscaled = y_scaler_fold.inverse_transform(preds)
-            true_unscaled = y_scaler_fold.inverse_transform(y_val_tensor.numpy())
-            r2 = r2_score(true_unscaled, preds_unscaled)
-            r2_scores.append(r2)
-            print(f"R²: {r2:.4f}")
-        
-        fold += 1
-
-    print(f"\nCross-Validation R²: {np.mean(r2_scores):.4f} ± {np.std(r2_scores):.4f}")
-    return r2_scores
-
 def identify_zero_inflated_fluxes(y_train, output_cols, threshold=0.01):
     problematic_indices = []
     for i, col in enumerate(output_cols):
         if col.startswith('EX_'):
             continue
         zero_ratio = np.mean(np.abs(y_train[:, i]) < threshold)
-        if zero_ratio > 0.3:
+        if zero_ratio > 0.5:
             problematic_indices.append(i)
-    print(f"Fluxes with >30% near-zero values\n{[output_cols[i] for i in problematic_indices]}")
+    print(f"Fluxes with >50% near-zero values\n{[output_cols[i] for i in problematic_indices]}")
     print(f"{len(problematic_indices)} in total")
     return problematic_indices
+
+def create_filtered_dataset(X, y, problematic_indices, min_abs_value=0.05, min_active=5, min_count=1000):
+    """Filter training samples with fewer near-zero fluxes for problematic outputs"""
+    '''
+    target_idx = 59
+    mask = np.abs(y[:, target_idx]) > min_abs_value
+    X_curated = X[mask]
+    y_curated = y[mask]
+    '''
+
+    active_counts = np.zeros(len(y), dtype=int)
+    for i in problematic_indices:
+        active_counts += (np.abs(y[:, i]) > min_abs_value)
+    
+    # Select samples where at least min_active problematic fluxes are active
+    good_rows = active_counts >= min_active
+    
+    X_filtered = X[good_rows]
+    y_filtered = y[good_rows]
+
+    if len(X_filtered) < min_count:
+        print(f"Warning: Only {len(X_filtered)} samples after filtering.")
+    else:
+        print(f"Created filtered dataset with {len(X_filtered)} samples.")
+    
+    return X_filtered, y_filtered
 
 def track_gradient_norms(model):
     total_norm = 0.0
@@ -426,10 +396,12 @@ y_test_non_constant = y_test[:, non_constant_indices]
 # Find fluxes with many zeros
 filtered_output_cols = [output_cols[i] for i in non_constant_indices]
 zero_inflated_indices = identify_zero_inflated_fluxes(y_train_non_constant, filtered_output_cols)
-
-#cv_scores = run_cross_validation(X_train, y_train, k=5, epochs=300)
+print(f'Zero-inflated indices: {zero_inflated_indices}')
 
 # Train Final Model on entire training set
+X_train_orig = X_train
+y_train_orig = y_train_non_constant
+
 x_scaler = StandardScaler().fit(X_train)
 y_scaler = StandardScaler().fit(y_train_non_constant)
 X_train_scaled = x_scaler.transform(X_train)
@@ -456,12 +428,28 @@ gradient_norms = []
 today = date.today().isoformat()
 
 print("\nTrain Final Model on entire training set:")
-epochs = 500
+epochs = 1000
+switch_epoch = epochs // 2
 
 best_test_loss = float('inf')
 best_epoch = -1
+switched = False
 
 for epoch in range(epochs):
+    if (not switched) and (epoch == switch_epoch):
+        X_cur, y_cur = create_filtered_dataset(
+            X_train_orig, y_train_orig,
+            zero_inflated_indices,
+            min_abs_value=0.01,
+            min_count=1000
+        )
+        if len(X_cur) > 0:
+            X_train_scaled = x_scaler.transform(X_cur)
+            y_train_scaled = y_scaler.transform(y_cur)
+            X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+            y_train_tensor = torch.tensor(y_train_scaled, dtype=torch.float32)
+            print(f"Epoch {epoch} - Switched to filtered: {len(X_cur)} samples")
+            switched = True
     model.train()
     optimizer.zero_grad()
     outputs = model(X_train_tensor)

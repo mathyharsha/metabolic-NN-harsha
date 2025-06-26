@@ -1,6 +1,6 @@
 import pandas as pd
 
-datafile = "./data/2025-06-25_full_training_data_99993_samples.csv"
+datafile = "./data/2025-06-26_full_training_data_99973_samples.csv"
 
 df = pd.read_csv(datafile)
 
@@ -20,7 +20,7 @@ def preprocess_zero_inflated(y_col, epsilon=1e-6):
         'nonzero_ratio': 1 - is_zero.mean()
     }
 
-stats = preprocess_zero_inflated(df['PPCK_flux'])
+stats = preprocess_zero_inflated(df['D_LACt2_flux'])
 print(f"Non-zero ratio: {stats['nonzero_ratio']:.4f}")
 
 '''
