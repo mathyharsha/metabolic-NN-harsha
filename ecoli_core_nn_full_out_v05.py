@@ -13,7 +13,7 @@ import os
 import seaborn as sns
 from datetime import date
 
-datafile = "./data/2025-06-26_full_training_data_99518_samples.csv"
+datafile = "./data/2025-06-26_full_training_data_99779_samples.csv"
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
@@ -399,8 +399,8 @@ zero_inflated_indices = identify_zero_inflated_fluxes(y_train_non_constant, filt
 print(f'Zero-inflated indices: {zero_inflated_indices}')
 
 # Train Final Model on entire training set
-X_train_orig = X_train
-y_train_orig = y_train_non_constant
+#X_train_orig = X_train # used for filtered data
+#y_train_orig = y_train_non_constant
 
 x_scaler = StandardScaler().fit(X_train)
 y_scaler = StandardScaler().fit(y_train_non_constant)
@@ -429,13 +429,14 @@ today = date.today().isoformat()
 
 print("\nTrain Final Model on entire training set:")
 epochs = 1000
-switch_epoch = epochs // 2
+#switch_epoch = epochs // 2
 
 best_test_loss = float('inf')
 best_epoch = -1
-switched = False
+#switched = False
 
 for epoch in range(epochs):
+    '''
     if (not switched) and (epoch == switch_epoch):
         X_cur, y_cur = create_filtered_dataset(
             X_train_orig, y_train_orig,
@@ -450,6 +451,7 @@ for epoch in range(epochs):
             y_train_tensor = torch.tensor(y_train_scaled, dtype=torch.float32)
             print(f"Epoch {epoch} - Switched to filtered: {len(X_cur)} samples")
             switched = True
+    '''
     model.train()
     optimizer.zero_grad()
     outputs = model(X_train_tensor)

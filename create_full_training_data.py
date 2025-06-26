@@ -31,7 +31,11 @@ def generate_training_sample(subset, variable_sources, outputs):
             # Uniform sampling:
             #rate = round(np.random.uniform(0.1, 10.0), 2) # mmol/gDW/hr
 
-            # Sample rate log-uniformly between 1 and 10 mmol/gDW/hr:
+            # beta distribution:
+            #rate = round(10 * np.random.beta(a=1, b=5), 2)
+
+            # Sample rate log-uniformly between 0.1 and 10 mmol/gDW/hr:
+            # ME1 improves by sampling more near 0 but overall accuracy drops then
             rate = round(float(10 ** np.random.uniform(-1, 1)), 2)
             
             model.reactions.get_by_id(met).lower_bound = -rate
@@ -54,7 +58,7 @@ def generate_training_sample(subset, variable_sources, outputs):
 if __name__ == "__main__":
     np.random.seed(42)
     default_rate = 100
-    n_samples = 100000
+    n_samples = 500000
 
     # Load the simplified E. coli metabolic model
     model = load_model("textbook")
