@@ -13,7 +13,7 @@ import os
 import seaborn as sns
 from datetime import date
 
-datafile = "./data/2025-06-26_full_training_data_99779_samples.csv"
+datafile = "./data/2025-06-27_full_training_data_49755_samples.csv"
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
@@ -21,10 +21,10 @@ class MetabolicNN(nn.Module):
         super(MetabolicNN, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
-            nn.BatchNorm1d(hidden_size),
+            #nn.BatchNorm1d(hidden_size),
             nn.LeakyReLU(0.01),
             nn.Linear(hidden_size, hidden_size),
-            nn.BatchNorm1d(hidden_size),
+            #nn.BatchNorm1d(hidden_size),
             nn.LeakyReLU(0.01),
             nn.Linear(hidden_size, output_size)
         )
@@ -428,7 +428,7 @@ gradient_norms = []
 today = date.today().isoformat()
 
 print("\nTrain Final Model on entire training set:")
-epochs = 1000
+epochs = 10000
 #switch_epoch = epochs // 2
 
 best_test_loss = float('inf')

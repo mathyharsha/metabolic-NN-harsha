@@ -58,11 +58,31 @@ def generate_training_sample(subset, variable_sources, outputs):
 if __name__ == "__main__":
     np.random.seed(42)
     default_rate = 100
-    n_samples = 500000
+    n_samples = 5000
 
     # Load the simplified E. coli metabolic model
     model = load_model("textbook")
 
+    carbon_sources = [
+        'glc__D_e',   # D-Glucose
+        'fru_e',      # Fructose
+        'lac__D_e',   # D-Lactate
+        'pyr_e',      # Pyruvate
+        'ac_e',       # Acetate
+        'akg_e',      # 2-Oxoglutarate
+        'succ_e',     # Succinate
+        'fum_e',      # Fumarate
+        'mal__L_e',   # L-Malate
+        'etoh_e',     # Ethanol
+        'acald_e',    # Acetaldehyde
+        'for_e'       # Formate
+    ]
+
+    non_carbon_sources = [
+        'gln__L_e',   # L-Glutamine
+        'glu__L_e'    # L-Glutamate
+    ]
+    
     variable_sources = [
         'glc__D_e',   # D-Glucose
         'fru_e',      # Fructose
