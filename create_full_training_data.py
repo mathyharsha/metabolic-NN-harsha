@@ -7,43 +7,55 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore", message="Solver status is 'infeasible'")
 
-def draw_carbon_subset(carbon_sources, selection_rate=0.5):
-    n = len(carbon_sources)
+def draw_subset(exchanges, selection_rate=0.5):
+    n = len(exchanges)
     k = max(1, np.random.binomial(n, selection_rate))
-    carbon_exchanges = np.array([f'EX_{met}' for met in carbon_sources])
-    return np.random.choice(carbon_exchanges, size=k, replace=False)
+    return np.random.choice(exchanges, size=k, replace=False)
 
-def generate_training_sample(subset, variable_sources, outputs):
-    """
-    Set uptake bounds for variable subset,
-    run FBA, and return the uptake rates + fluxes.
-    """
+def draw_nitrogen(nitrogen_exchanges):
+    """Draw one nitrogen source"""
+    return np.random.choice(nitrogen_exchanges)
+
+def random_rate(min_val=0.1, max_val=10.0):
+    """Draw uptake rate log-uniformly between min and max."""
+    # return round(np.random.uniform(min_val, max_val), 2) # uniform
+    return round(float(10 ** np.random.uniform(np.log10(min_val), np.log10(max_val))), 2)
+
+def generate_training_sample(carbon_subset, nitrogen_subset, outputs):
     data = {}
     with model:
-        # Reset variable uptakes
-        for met in variable_sources:
-            rxn_id = f'EX_{met}'
-            if rxn_id in model.reactions:
-                model.reactions.get_by_id(rxn_id).lower_bound = 0.0
+        # Reset all exchanges
+        for rxn in model.exchanges:
+            rxn.lower_bound = 0.0
 
-        # Set subset uptakes
-        for met in subset:
-            # Uniform sampling:
-            #rate = round(np.random.uniform(0.1, 10.0), 2) # mmol/gDW/hr
+        # Set uptake rates for selected carbon sources
+        for ex in carbon_subset:
+            rate = random_rate()
+            model.reactions.get_by_id(ex).lower_bound = -rate
+            data[ex] = rate
 
-            # beta distribution:
-            #rate = round(10 * np.random.beta(a=1, b=5), 2)
+        # Set uptake rates for selected nitrogen sources
+        for ex in nitrogen_subset:
+            rate = random_rate()
+            model.reactions.get_by_id(ex).lower_bound = -rate
+            data[ex] = rate
 
-            # Sample rate log-uniformly between 0.1 and 10 mmol/gDW/hr:
-            # ME1 improves by sampling more near 0 but overall accuracy drops then
-            rate = round(float(10 ** np.random.uniform(-1, 1)), 2)
-            
-            model.reactions.get_by_id(met).lower_bound = -rate
-            data[met] = rate
+        # Set variable oxygen uptake
+        o2_rate = round(np.random.uniform(0.1, default_rate), 2)
+        model.reactions.get_by_id("EX_o2_e").lower_bound = -o2_rate
+        data["EX_o2_e"] = o2_rate
 
-        # Add base exchange uptakes with default_rate to data dict
-        for met in base_exchanges:
-            data[met] = default_rate
+        # Set base exchange rates
+        # Leave CO2, H+, and H2O unconstrained because they are usually byproducts or balancing species
+        # Constraining or varying them can cause infeasible or biologically unrealistic fluxes
+        for ex in ['EX_co2_e', 'EX_h_e', 'EX_h2o_e']:
+            model.reactions.get_by_id(ex).lower_bound = -default_rate
+            data[ex] = default_rate
+
+        # Make phosphate (EX_pi_e) variable, as its availability can limit growth and vary naturally
+        pi_rate = round(np.random.uniform(0.1, default_rate), 2)
+        model.reactions.get_by_id('EX_pi_e').lower_bound = -pi_rate
+        data['EX_pi_e'] = pi_rate
 
         # Run FBA
         solution = model.optimize()
@@ -57,75 +69,57 @@ def generate_training_sample(subset, variable_sources, outputs):
 
 if __name__ == "__main__":
     np.random.seed(42)
-    default_rate = 100
-    n_samples = 5000
+    default_rate = 50
+    n_samples = 100
 
     # Load the simplified E. coli metabolic model
     model = load_model("textbook")
 
-    carbon_sources = [
-        'glc__D_e',   # D-Glucose
-        'fru_e',      # Fructose
-        'lac__D_e',   # D-Lactate
-        'pyr_e',      # Pyruvate
-        'ac_e',       # Acetate
-        'akg_e',      # 2-Oxoglutarate
-        'succ_e',     # Succinate
-        'fum_e',      # Fumarate
-        'mal__L_e',   # L-Malate
-        'etoh_e',     # Ethanol
-        'acald_e',    # Acetaldehyde
-        'for_e'       # Formate
+    carbon_exchanges = [
+        'EX_glc__D_e',   # D-Glucose
+        'EX_fru_e',      # Fructose
+        'EX_lac__D_e',   # D-Lactate
+        'EX_pyr_e',      # Pyruvate
+        'EX_ac_e',       # Acetate
+        'EX_akg_e',      # 2-Oxoglutarate
+        'EX_succ_e',     # Succinate
+        'EX_fum_e',      # Fumarate
+        'EX_mal__L_e',   # L-Malate
+        'EX_etoh_e',     # Ethanol
+        'EX_acald_e',    # Acetaldehyde
+        #'EX_for_e'       # Formate (byproduct of anaerobic fermentation -> don't use as variable input)
     ]
 
-    non_carbon_sources = [
-        'gln__L_e',   # L-Glutamine
-        'glu__L_e'    # L-Glutamate
-    ]
-    
-    variable_sources = [
-        'glc__D_e',   # D-Glucose
-        'fru_e',      # Fructose
-        'lac__D_e',   # D-Lactate
-        'pyr_e',      # Pyruvate
-        'ac_e',       # Acetate
-        'akg_e',      # 2-Oxoglutarate
-        'succ_e',     # Succinate
-        'fum_e',      # Fumarate
-        'mal__L_e',   # L-Malate
-        'etoh_e',     # Ethanol
-        'acald_e',    # Acetaldehyde
-        'for_e',      # Formate
-        'gln__L_e',   # L-Glutamine
-        'glu__L_e'    # L-Glutamate
+    # In natural environments, microbes usually access a dominant nitrogen source at a time -> choose 1 when sampling
+    nitrogen_exchanges = [
+        'EX_gln__L_e',   # L-Glutamine
+        'EX_glu__L_e',   # L-Glutamate
+        'EX_nh4_e'       # Ammonia
     ]
 
     base_exchanges = [
         'EX_co2_e',
         'EX_h_e',
         'EX_h2o_e',
-        'EX_nh4_e',
         'EX_o2_e',
-        'EX_pi_e'
+        'EX_pi_e'       # Phosphate (essential)
     ]
 
     outputs = [rxn.id for rxn in model.reactions]
     #print([rxn.id for rxn in model.reactions])
     #print(len(model.reactions))
-    
-    # Set base exhange uptakes to default_rate
-    for met in base_exchanges:
-        model.reactions.get_by_id(met).lower_bound = -default_rate
 
     training_data = []
     start_time = time.time()
 
-    print(f"Generating {n_samples} random FBA samples with random carbon subsets...\n")
+    print(f"Generating {n_samples} FBA training samples...\n")
     sample_count = 0
+
     for _ in range(n_samples):
-        subset = draw_carbon_subset(variable_sources)
-        #print(f"Subset: {subset}")
-        sample = generate_training_sample(subset, variable_sources, outputs)
+        carbon_subset = draw_subset(carbon_exchanges)
+        nitrogen_subset = draw_subset(nitrogen_exchanges)
+
+        sample = generate_training_sample(carbon_subset, nitrogen_subset, outputs)
         if sample:
             training_data.append(sample)
             sample_count += 1
@@ -134,12 +128,17 @@ if __name__ == "__main__":
 
     print(f"Total execution time: {time.time() - start_time:.2f} seconds")
 
-    uptake_cols = [f'EX_{m}' for m in variable_sources] + base_exchanges
-    flux_cols = [f"{rxn}_flux" for rxn in outputs]
-    ordered_columns = uptake_cols + flux_cols
+    input_cols = (
+        carbon_exchanges + 
+        nitrogen_exchanges + 
+        ['EX_o2_e', 'EX_pi_e'] + 
+        ['EX_co2_e', 'EX_h_e', 'EX_h2o_e']
+    )
+    output_cols = [f"{rxn}_flux" for rxn in outputs]
+    ordered_columns = input_cols + output_cols
 
     df = pd.DataFrame(training_data).reindex(columns=ordered_columns, fill_value=0.0)
-    
+                                             
     # Save data
     os.makedirs("./data", exist_ok=True)
     today = datetime.today().strftime('%Y-%m-%d')
