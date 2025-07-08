@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import r2_score
 import numpy as np
@@ -13,7 +13,7 @@ import os
 import seaborn as sns
 from datetime import date
 
-datafile = "./data/2025-06-27_full_training_data_49755_samples.csv"
+datafile = "./data/2025-07-08_full_training_data_99548_samples.csv"
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
@@ -21,10 +21,10 @@ class MetabolicNN(nn.Module):
         super(MetabolicNN, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
-            #nn.BatchNorm1d(hidden_size),
+            nn.BatchNorm1d(hidden_size),
             nn.LeakyReLU(0.01),
             nn.Linear(hidden_size, hidden_size),
-            #nn.BatchNorm1d(hidden_size),
+            nn.BatchNorm1d(hidden_size),
             nn.LeakyReLU(0.01),
             nn.Linear(hidden_size, output_size)
         )
@@ -37,8 +37,10 @@ def load_and_preprocess_data(filename):
     input_cols = [
         'EX_glc__D_e', 'EX_fru_e', 'EX_lac__D_e', 'EX_pyr_e', 'EX_ac_e',
         'EX_akg_e', 'EX_succ_e', 'EX_fum_e', 'EX_mal__L_e', 'EX_etoh_e',
-        'EX_acald_e', 'EX_for_e', 'EX_gln__L_e', 'EX_glu__L_e',
-        'EX_co2_e', 'EX_h_e', 'EX_h2o_e', 'EX_nh4_e', 'EX_o2_e', 'EX_pi_e'
+        'EX_acald_e',
+        'EX_gln__L_e', 'EX_glu__L_e', 'EX_nh4_e',
+        'EX_co2_e', 'EX_h_e', 'EX_h2o_e', 'EX_o2_e', 'EX_pi_e',
+        'EX_for_e',
     ]
 
     output_cols = [
@@ -164,32 +166,6 @@ def identify_zero_inflated_fluxes(y_train, output_cols, threshold=0.01):
     print(f"{len(problematic_indices)} in total")
     return problematic_indices
 
-def create_filtered_dataset(X, y, problematic_indices, min_abs_value=0.05, min_active=5, min_count=1000):
-    """Filter training samples with fewer near-zero fluxes for problematic outputs"""
-    '''
-    target_idx = 59
-    mask = np.abs(y[:, target_idx]) > min_abs_value
-    X_curated = X[mask]
-    y_curated = y[mask]
-    '''
-
-    active_counts = np.zeros(len(y), dtype=int)
-    for i in problematic_indices:
-        active_counts += (np.abs(y[:, i]) > min_abs_value)
-    
-    # Select samples where at least min_active problematic fluxes are active
-    good_rows = active_counts >= min_active
-    
-    X_filtered = X[good_rows]
-    y_filtered = y[good_rows]
-
-    if len(X_filtered) < min_count:
-        print(f"Warning: Only {len(X_filtered)} samples after filtering.")
-    else:
-        print(f"Created filtered dataset with {len(X_filtered)} samples.")
-    
-    return X_filtered, y_filtered
-
 def track_gradient_norms(model):
     total_norm = 0.0
     for p in model.parameters():
@@ -208,7 +184,7 @@ def plot_loss_curves(train_losses, test_losses, save_path, log_scale=True):
     if log_scale:
         plt.yscale('log')
     plt.xlabel("Epoch", fontsize=18)
-    plt.ylabel("MSE Loss", fontsize=18)
+    plt.ylabel("Loss", fontsize=18)
     plt.title("Training and Test Loss", fontsize=20)
     plt.grid(True)
     plt.legend(fontsize=16)
@@ -222,7 +198,7 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
 
     fig, axs = plt.subplots(2, 2, figsize=(12, 10))
     
-    # Actual vs Predicted
+    # True vs Predicted
     axs[0, 0].scatter(y_true, y_pred, alpha=0.2, s=5, color='royalblue')
     axs[0, 0].plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'k--', lw=2)
     axs[0, 0].set_title(f'True vs Predicted: {label}')
@@ -246,7 +222,7 @@ def plot_diagnostics_2x2(y_true, y_pred, label, save_path):
     axs[1, 0].grid(True)
 
     # Histogram of actual values
-    sns.histplot(y_true, kde=True, ax=axs[1, 1], legend=False, color='mediumseagreen')
+    sns.histplot(y_true, kde=True, bins=100, ax=axs[1, 1], legend=False, color='mediumseagreen')
     axs[1, 1].set_title(f'True Value Distribution: {label}')
     axs[1, 1].set_xlabel('True Value')
     axs[1, 1].set_ylabel('Frequency')
@@ -261,7 +237,7 @@ def save_individual_diagnostic_plots(y_true, y_pred, label, save_path):
     """Save individual diagnostic plots separately"""
     residuals = y_true - y_pred
 
-    # Actual vs Predicted
+    # True vs Predicted
     plt.figure(figsize=(14, 10))
     plt.scatter(y_true, y_pred, alpha=0.2, s=10, color='royalblue')
     plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'k--', lw=2)
@@ -398,10 +374,6 @@ filtered_output_cols = [output_cols[i] for i in non_constant_indices]
 zero_inflated_indices = identify_zero_inflated_fluxes(y_train_non_constant, filtered_output_cols)
 print(f'Zero-inflated indices: {zero_inflated_indices}')
 
-# Train Final Model on entire training set
-#X_train_orig = X_train # used for filtered data
-#y_train_orig = y_train_non_constant
-
 x_scaler = StandardScaler().fit(X_train)
 y_scaler = StandardScaler().fit(y_train_non_constant)
 X_train_scaled = x_scaler.transform(X_train)
@@ -428,30 +400,12 @@ gradient_norms = []
 today = date.today().isoformat()
 
 print("\nTrain Final Model on entire training set:")
-epochs = 10000
-#switch_epoch = epochs // 2
+epochs = 1000
 
 best_test_loss = float('inf')
 best_epoch = -1
-#switched = False
 
 for epoch in range(epochs):
-    '''
-    if (not switched) and (epoch == switch_epoch):
-        X_cur, y_cur = create_filtered_dataset(
-            X_train_orig, y_train_orig,
-            zero_inflated_indices,
-            min_abs_value=0.01,
-            min_count=1000
-        )
-        if len(X_cur) > 0:
-            X_train_scaled = x_scaler.transform(X_cur)
-            y_train_scaled = y_scaler.transform(y_cur)
-            X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
-            y_train_tensor = torch.tensor(y_train_scaled, dtype=torch.float32)
-            print(f"Epoch {epoch} - Switched to filtered: {len(X_cur)} samples")
-            switched = True
-    '''
     model.train()
     optimizer.zero_grad()
     outputs = model(X_train_tensor)

@@ -16,10 +16,10 @@ def draw_nitrogen(nitrogen_exchanges):
     """Draw one nitrogen source"""
     return np.random.choice(nitrogen_exchanges)
 
-def random_rate(min_val=0.1, max_val=10.0):
-    """Draw uptake rate log-uniformly between min and max."""
-    # return round(np.random.uniform(min_val, max_val), 2) # uniform
-    return round(float(10 ** np.random.uniform(np.log10(min_val), np.log10(max_val))), 2)
+def random_rate(min_val=0.01, max_val=10.0):
+    """Draw uptake rate between min and max."""
+    return round(np.random.uniform(min_val, max_val), 2) # uniform
+    # return round(float(10 ** np.random.uniform(np.log10(min_val), np.log10(max_val))), 2)
 
 def generate_training_sample(carbon_subset, nitrogen_subset, outputs):
     data = {}
@@ -36,7 +36,7 @@ def generate_training_sample(carbon_subset, nitrogen_subset, outputs):
 
         # Set uptake rates for selected nitrogen sources
         for ex in nitrogen_subset:
-            rate = random_rate()
+            rate = random_rate(1, default_rate)
             model.reactions.get_by_id(ex).lower_bound = -rate
             data[ex] = rate
 
@@ -70,7 +70,7 @@ def generate_training_sample(carbon_subset, nitrogen_subset, outputs):
 if __name__ == "__main__":
     np.random.seed(42)
     default_rate = 50
-    n_samples = 100
+    n_samples = 100000
 
     # Load the simplified E. coli metabolic model
     model = load_model("textbook")
@@ -87,10 +87,10 @@ if __name__ == "__main__":
         'EX_mal__L_e',   # L-Malate
         'EX_etoh_e',     # Ethanol
         'EX_acald_e',    # Acetaldehyde
-        #'EX_for_e'       # Formate (byproduct of anaerobic fermentation -> don't use as variable input)
+        'EX_for_e'       # Formate (byproduct of anaerobic fermentation)
     ]
 
-    # In natural environments, microbes usually access a dominant nitrogen source at a time -> choose 1 when sampling
+    # In natural environments, microbes usually access a dominant nitrogen source at a time
     nitrogen_exchanges = [
         'EX_gln__L_e',   # L-Glutamine
         'EX_glu__L_e',   # L-Glutamate
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         'EX_h_e',
         'EX_h2o_e',
         'EX_o2_e',
-        'EX_pi_e'       # Phosphate (essential)
+        'EX_pi_e',       # Phosphate (essential)
     ]
 
     outputs = [rxn.id for rxn in model.reactions]
@@ -131,8 +131,7 @@ if __name__ == "__main__":
     input_cols = (
         carbon_exchanges + 
         nitrogen_exchanges + 
-        ['EX_o2_e', 'EX_pi_e'] + 
-        ['EX_co2_e', 'EX_h_e', 'EX_h2o_e']
+        base_exchanges
     )
     output_cols = [f"{rxn}_flux" for rxn in outputs]
     ordered_columns = input_cols + output_cols
