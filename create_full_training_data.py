@@ -41,7 +41,8 @@ def generate_training_sample(carbon_subset, nitrogen_subset, outputs):
             data[ex] = rate
 
         # Set variable oxygen uptake
-        o2_rate = round(np.random.uniform(0.1, default_rate), 2)
+        #o2_rate = round(np.random.uniform(0.1, default_rate), 2)
+        o2_rate = random_rate(0.1, default_rate)
         model.reactions.get_by_id("EX_o2_e").lower_bound = -o2_rate
         data["EX_o2_e"] = o2_rate
 
@@ -53,7 +54,7 @@ def generate_training_sample(carbon_subset, nitrogen_subset, outputs):
             data[ex] = default_rate
 
         # Make phosphate (EX_pi_e) variable, as its availability can limit growth and vary naturally
-        pi_rate = round(np.random.uniform(0.1, default_rate), 2)
+        pi_rate = random_rate(0.1, default_rate)
         model.reactions.get_by_id('EX_pi_e').lower_bound = -pi_rate
         data['EX_pi_e'] = pi_rate
 
@@ -70,7 +71,7 @@ def generate_training_sample(carbon_subset, nitrogen_subset, outputs):
 if __name__ == "__main__":
     np.random.seed(42)
     default_rate = 50
-    n_samples = 100000
+    n_samples = 500000
 
     # Load the simplified E. coli metabolic model
     model = load_model("textbook")

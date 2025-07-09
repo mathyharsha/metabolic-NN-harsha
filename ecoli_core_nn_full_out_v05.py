@@ -13,11 +13,11 @@ import os
 import seaborn as sns
 from datetime import date
 
-datafile = "./data/2025-07-08_full_training_data_99548_samples.csv"
+datafile = "./data/2025-07-08_full_training_data_497743_samples.csv"
 
 class MetabolicNN(nn.Module):
     """Neural network to predict metabolic fluxes"""
-    def __init__(self, input_size=20, hidden_size=256, output_size=95):
+    def __init__(self, input_size=20, hidden_size=512, output_size=95):
         super(MetabolicNN, self).__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -392,7 +392,7 @@ model = MetabolicNN(
 )
 #criterion = nn.MSELoss()
 criterion = nn.HuberLoss()
-optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-5)
+optimizer = optim.AdamW(model.parameters(), lr=0.0001, weight_decay=1e-5)
 
 train_losses = []
 test_losses = []
@@ -400,7 +400,7 @@ gradient_norms = []
 today = date.today().isoformat()
 
 print("\nTrain Final Model on entire training set:")
-epochs = 1000
+epochs = 5000
 
 best_test_loss = float('inf')
 best_epoch = -1
@@ -411,7 +411,7 @@ for epoch in range(epochs):
     outputs = model(X_train_tensor)
     loss = criterion(outputs, y_train_tensor)
     loss.backward()
-    #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
     grad_norm = track_gradient_norms(model)
     gradient_norms.append(grad_norm)
     optimizer.step()
