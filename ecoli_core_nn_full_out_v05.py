@@ -21,11 +21,11 @@ class MetabolicNN(nn.Module):
         super().__init__()
         self.model = nn.Sequential(
             nn.Linear(input_size, hidden_size),
-            nn.BatchNorm1d(hidden_size),
+            nn.LayerNorm(hidden_size),
             nn.LeakyReLU(0.01),
 
             nn.Linear(hidden_size, hidden_size),
-            nn.BatchNorm1d(hidden_size),
+            nn.LayerNorm(hidden_size),
             nn.LeakyReLU(0.01),
 
             nn.Linear(hidden_size, output_size)
@@ -322,7 +322,7 @@ def preprocess_data(X, y, output_cols):
 
 def train_model(model, X_train, y_train, X_test, y_test, epochs=1000):
     """Train the model with GPU support if available"""
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
     print(f"Using device: {device}")
     
     model = model.to(device)
@@ -346,25 +346,29 @@ def train_model(model, X_train, y_train, X_test, y_test, epochs=1000):
         outputs = model(X_train)
         loss = criterion(outputs, y_train)
         loss.backward()
+
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
         grad_norm = track_gradient_norms(model)
         gradient_norms.append(grad_norm)
+
         optimizer.step()
-        train_losses.append(loss.item())
 
         # Validation on test set
         model.eval()
         with torch.no_grad():
+            train_loss = loss.item()
             test_outputs = model(X_test)
             test_loss = criterion(test_outputs, y_test).item()
-            test_losses.append(test_loss)
+
+        train_losses.append(train_loss)
+        test_losses.append(test_loss)
         
         if test_loss < best_test_loss:
             best_test_loss = test_loss
             best_epoch = epoch
 
         if (epoch+1) % 50 == 0:
-            print(f"Epoch {epoch+1}/{epochs}, Train Loss: {loss.item():.4f}, Test Loss: {test_loss:.4f}")
+            print(f"Epoch {epoch+1}/{epochs} \t | Train Loss: {train_loss:.4f} | Test Loss: {test_loss:.4f} | Grad Norm: {grad_norm:.4e}")
 
     print(f"Best test loss at epoch {best_epoch+1}: {best_test_loss:.4f}\n")
     
@@ -388,6 +392,8 @@ if __name__ == "__main__":
         input_size=X_train_tensor.shape[1],
         output_size=len(non_constant_indices)
     )
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Total number of parameters: {total_params:,}")
 
     print("\nTraining model:")
     model, train_losses, test_losses, gradient_norms = train_model(
