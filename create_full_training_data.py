@@ -71,7 +71,7 @@ def generate_training_sample(carbon_subset, nitrogen_subset, outputs):
 if __name__ == "__main__":
     np.random.seed(42)
     default_rate = 50
-    n_samples = 50000*2
+    n_samples = 50000*20
 
     # Load the simplified E. coli metabolic model
     model = load_model("textbook")
