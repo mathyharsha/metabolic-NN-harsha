@@ -464,7 +464,7 @@ if __name__ == "__main__":
     today = date.today().isoformat()
     model_name = f"ecoli_core_UB_d{d_model}_h{n_heads}_l{n_layers}_ff{d_ff}"
 
-    model_save_dir = f"./models_harsha/{model_name}"
+    model_save_dir = f"./models/{model_name}"
     model_save_path = f"{model_save_dir}/{model_name}.pth"
     os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
     torch.save(model.state_dict(), model_save_path)
