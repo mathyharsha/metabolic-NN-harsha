@@ -1,0 +1,3 @@
+[submodule "external/amn_release"]
+	path = external/amn_release
+	url = https://github.com/brsynth/amn_release.git
