@@ -25,14 +25,14 @@ pd.set_option('display.max_rows', None)
 DATAPATH = 'external/amn_release/Dataset_model/e_coli_core_UB_15400.npz' 
 
 # Set all random seeds for reproducibility
-def set_seed(seed=42):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # For multi-GPU setups
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+# def set_seed(seed=42):
+#     random.seed(seed)
+#     np.random.seed(seed)
+#     torch.manual_seed(seed)
+#     torch.cuda.manual_seed(seed)
+#     torch.cuda.manual_seed_all(seed)  # For multi-GPU setups
+#     torch.backends.cudnn.deterministic = True
+#     torch.backends.cudnn.benchmark = False
 
 
 def get_device(device_type=None):
@@ -52,7 +52,7 @@ def get_device(device_type=None):
     else:
         return torch.device("cpu")
 
-device = get_device("cuda")
+device = get_device("mps")
 
 print(f"Training on device: {device}")
 
@@ -332,7 +332,7 @@ def train_model(
     start_time = time.time()
 
     model = FluxTransformer(
-        vocab_size=115,
+        vocab_size=len(input_cols) + len(output_cols),
         d_model=d_model,
         n_heads=n_heads,
         n_layers=n_layers,
@@ -355,7 +355,7 @@ def train_model(
     train_losses = []
     test_losses = []
 
-    total_outputs = 174
+    total_outputs = len(output_cols)
     output_start_idx = 20
 
     for epoch in range(num_epochs):
@@ -452,7 +452,6 @@ if __name__ == "__main__":
     learning_rate = 1e-4
     dropout = 0.02
     
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
     X, y, input_cols, output_cols = load_data(DATAPATH)
