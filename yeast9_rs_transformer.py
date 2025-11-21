@@ -279,6 +279,66 @@ def create_dataloaders(X_train, y_train, X_test, y_test, batch_size):
 
     return train_loader, test_loader
 
+def compute_output_sampling_weights(
+    data_path=DATA_PATH,
+    inputs_list=inputs,
+    outputs_list=outputs,
+    boost_dict=None,   # e.g. {"r_2111_flux": 10.0}
+    min_weight=1e-8,
+    temperature=1.0
+):
+    """
+    Returns:
+        weights: numpy array of length len(outputs_list) with normalized probabilities
+        stats: DataFrame with abs_mean, variance, log_abs_mean for all flux columns (index includes '_flux')
+    """
+    df_all = pd.read_csv(data_path)
+    df = df_all.drop(columns=inputs_list, errors='ignore')
+
+    # ensure flux columns are present with _flux suffix
+    flux_cols = [f"{o}_flux" for o in outputs_list]
+
+    abs_mean = df.abs().mean()
+    variance = df.var()
+    log_abs_mean = np.log1p(abs_mean)   # log(1 + abs_mean)
+
+    stats = pd.DataFrame({
+        "abs_mean": abs_mean,
+        "variance": variance,
+        "log_abs_mean": log_abs_mean
+    })
+
+    # Build weight vector for outputs in the same order as outputs_list
+    w_list = []
+    for col in flux_cols:
+        if col in stats.index:
+            w_list.append(stats.loc[col, "log_abs_mean"])
+        else:
+            w_list.append(min_weight)
+
+    weights = np.array(w_list, dtype=np.float64)
+
+    # boost given reactions
+    if boost_dict:
+        for rxn_name, factor in boost_dict.items():
+            if not rxn_name.endswith("_flux"):
+                rxn_key = f"{rxn_name}_flux"
+            else:
+                rxn_key = rxn_name
+            if rxn_key in flux_cols:
+                idx = flux_cols.index(rxn_key)
+                weights[idx] = weights[idx] * float(factor)
+
+    # replace NaN, non-finite or zero with small weight
+    weights = np.nan_to_num(weights, nan=min_weight, posinf=min_weight, neginf=min_weight)
+    weights = np.where(weights == 0, min_weight, weights)
+
+    # Softmax with temperature
+    exp_weights = np.exp(weights / temperature)
+    weights = exp_weights / np.sum(exp_weights)
+
+    return weights, stats
+
 def train_model(
         d_model=128, 
         n_heads=8, 
@@ -341,6 +401,8 @@ def train_model(
     else:
         print("\nNo checkpoint found. Starting fresh training.")
 
+    weights_t = torch.tensor(weights_for_outputs, device=device, dtype=torch.float32)
+
     for epoch in range(start_epoch, num_epochs):
         model.train()
         epoch_train_loss = 0.0
@@ -353,16 +415,27 @@ def train_model(
                 sampled_indices = None  # pass None to FluxTransformer.forward()
             else:
                 n_sampled = max(1, int(total_outputs * output_sample_ratio))
+                chosen_relative = torch.multinomial(
+                    weights_t,
+                    num_samples=n_sampled,
+                    replacement=False
+                )
+                chosen_global = chosen_relative + output_start_idx
+                sampled_indices = torch.tensor(chosen_global, device=device)
+                '''
+                n_sampled = max(1, int(total_outputs * output_sample_ratio))
                 sampled_indices = torch.tensor(
                     random.sample(range(output_start_idx, output_start_idx + total_outputs), n_sampled),
                     device=device
                 )
+                '''
 
             predictions, selected_indices = model(batch_X, output_subset=sampled_indices)
             
             target = batch_y[:, selected_indices, :]
 
             loss = criterion(predictions, target)
+            optimizer.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
@@ -383,11 +456,24 @@ def train_model(
                 batch_X = batch_X.to(device, non_blocking=True)
                 batch_y = batch_y.to(device, non_blocking=True)
 
+                # Use full outputs during evaluation
+                sampled_indices = None
+                '''
+                n_sampled = max(1, int(total_outputs * output_sample_ratio))
+                chosen_relative = torch.multinomial(
+                    weights_t,
+                    num_samples=n_sampled,
+                    replacement=False
+                )
+                chosen_global = chosen_relative + output_start_idx
+                sampled_indices = torch.tensor(chosen_global, device=device)
+                
                 n_sampled = max(1, int(total_outputs * output_sample_ratio))
                 sampled_indices = torch.tensor(
                     random.sample(range(output_start_idx, output_start_idx + total_outputs), n_sampled),
                     device=device
                 )
+                '''
 
                 predictions, selected_indices = model(batch_X, output_subset=sampled_indices)
                 target = batch_y[:, selected_indices, :]
@@ -487,7 +573,7 @@ if __name__ == "__main__":
     n_heads = 8
     n_layers = 3
     d_ff = 1024
-    batch_size = 32
+    batch_size = 8
     num_epochs = 10
     learning_rate = 1e-4
     dropout = 0.02
@@ -502,6 +588,20 @@ if __name__ == "__main__":
     train_loader, test_loader = create_dataloaders(X_train, y_train, X_test, y_test, batch_size)
 
     #print_gpu_memory()
+
+    boost_dict = {"r_2111_flux": 7.0}
+    temperature = 1.0
+
+    weights_for_outputs, stats = compute_output_sampling_weights(
+        data_path=DATA_PATH,
+        inputs_list=inputs,
+        outputs_list=outputs,
+        boost_dict=boost_dict,
+        temperature=temperature
+    )
+
+    # weights_for_outputs is aligned with outputs (index 0 -> outputs[0] -> vocab index len(inputs)+0)
+    print(f"Prepared sampling weights for {len(weights_for_outputs)} outputs. Sum={weights_for_outputs.sum():.6f}")
 
     train_loss, test_loss, model, optimizer = train_model(d_model, n_heads, n_layers, d_ff, num_epochs, learning_rate, dropout, model_name, output_sample_ratio)
 
