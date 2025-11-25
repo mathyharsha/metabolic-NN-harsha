@@ -1,0 +1,15 @@
+Training on device: cuda
+PyTorch version: 2.8.0+cu128
+Training samples: 9240
+Test samples: 6160
+Using device: cuda
+Training samples: 9240
+Test samples: 6160
+Epoch 2/10 | Train Loss: 0.326788 | Test Loss: 0.226592
+Epoch 4/10 | Train Loss: 0.152820 | Test Loss: 0.114542
+Epoch 6/10 | Train Loss: 0.119143 | Test Loss: 0.087388
+Epoch 8/10 | Train Loss: 0.100107 | Test Loss: 0.087173
+Epoch 10/10 | Train Loss: 0.086717 | Test Loss: 0.059345
+Training Completed.
+Training took 3 min 5.2 sec.
+Best test loss: 0.059345 at epoch 10

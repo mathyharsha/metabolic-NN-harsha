@@ -1,0 +1,25 @@
+Training on device: cuda
+PyTorch version: 2.8.0+cu128
+Training samples: 9240
+Test samples: 6160
+Using device: cuda
+Training samples: 9240
+Test samples: 6160
+Traceback (most recent call last):
+  File "/scratch/project_2013496/FluxFormer/metabolic-NN-harsha/ecoli_core_UB_rs_fluxformer_test.py", line 462, in <module>
+    train_loss, test_loss, model, optimizer = train_model(d_model, n_heads, n_layers, d_ff, num_epochs, learning_rate, dropout)
+  File "/scratch/project_2013496/FluxFormer/metabolic-NN-harsha/ecoli_core_UB_rs_fluxformer_test.py", line 377, in train_model
+    predictions, selected_indices = model(batch_X, output_subset=sampled_indices)
+  File "/scratch/project_2013496/vflux/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1773, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/scratch/project_2013496/vflux/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1784, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/scratch/project_2013496/FluxFormer/metabolic-NN-harsha/ecoli_core_UB_rs_fluxformer_test.py", line 229, in forward
+    c_subset = c[:, selected_indices, :]
+torch.AcceleratorError: CUDA error: device-side assert triggered
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+srun: error: r14g06: task 0: Exited with exit code 1
+srun: Terminating StepId=30609072.0

@@ -1,0 +1,12 @@
+Training on device: mps
+PyTorch version: 2.8.0+cu128
+Training samples: 9240
+Test samples: 6160
+Traceback (most recent call last):
+  File "/scratch/project_2013496/FluxFormer/metabolic-NN-harsha/ecoli_core_UB_rs_fluxformer_test.py", line 318, in <module>
+    X_train, X_test, y_train, y_test = prepare_tensors(X, y, device=device)
+  File "/scratch/project_2013496/FluxFormer/metabolic-NN-harsha/ecoli_core_UB_rs_fluxformer_test.py", line 286, in prepare_tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32).to(device)
+RuntimeError: PyTorch is not linked with support for mps devices
+srun: error: r02c03: task 0: Exited with exit code 1
+srun: Terminating StepId=30635598.0

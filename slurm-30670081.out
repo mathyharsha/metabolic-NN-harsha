@@ -1,0 +1,108 @@
+Training on device: cpu
+PyTorch version: 2.8.0+cu128
+Training samples: 9240
+Test samples: 6160
+Neither CUDA nor MPS is available.
+Using device: cpu
+Training samples: 9240
+Test samples: 6160
+Epoch 2/10 | Train Loss: 1.051241 | Test Loss: 0.868236
+Epoch 4/10 | Train Loss: 0.775235 | Test Loss: 0.695511
+Epoch 6/10 | Train Loss: 0.658854 | Test Loss: 0.567624
+Epoch 8/10 | Train Loss: 0.580945 | Test Loss: 0.483019
+Epoch 10/10 | Train Loss: 0.518508 | Test Loss: 0.423340
+Training Completed.
+Training took 8 min 59.7 sec.
+Best test loss: 0.423340 at epoch 10
+Number of parameters:
+9687
+Epoch 2/10 | Train Loss: 0.938961 | Test Loss: 0.733518
+Epoch 4/10 | Train Loss: 0.541170 | Test Loss: 0.423430
+Epoch 6/10 | Train Loss: 0.389872 | Test Loss: 0.314664
+Epoch 8/10 | Train Loss: 0.324968 | Test Loss: 0.224346
+Epoch 10/10 | Train Loss: 0.271315 | Test Loss: 0.192415
+Training Completed.
+Training took 8 min 30.3 sec.
+Best test loss: 0.192415 at epoch 10
+Number of parameters:
+19743
+Epoch 2/10 | Train Loss: 0.514058 | Test Loss: 0.351574
+Epoch 4/10 | Train Loss: 0.225671 | Test Loss: 0.176507
+Epoch 6/10 | Train Loss: 0.175247 | Test Loss: 0.122053
+Epoch 8/10 | Train Loss: 0.147931 | Test Loss: 0.101687
+Epoch 10/10 | Train Loss: 0.129674 | Test Loss: 0.086384
+Training Completed.
+Training took 14 min 16.1 sec.
+Best test loss: 0.086384 at epoch 10
+Number of parameters:
+44469
+Epoch 2/10 | Train Loss: 0.387394 | Test Loss: 0.240915
+Epoch 4/10 | Train Loss: 0.194351 | Test Loss: 0.119056
+Epoch 6/10 | Train Loss: 0.147246 | Test Loss: 0.100999
+Epoch 8/10 | Train Loss: 0.125678 | Test Loss: 0.091950
+Epoch 10/10 | Train Loss: 0.106296 | Test Loss: 0.100557
+Training Completed.
+Training took 21 min 22.9 sec.
+Best test loss: 0.069710 at epoch 9
+Number of parameters:
+91740
+Epoch 2/10 | Train Loss: 0.245533 | Test Loss: 0.159375
+Epoch 4/10 | Train Loss: 0.141906 | Test Loss: 0.109344
+Epoch 6/10 | Train Loss: 0.106651 | Test Loss: 0.067921
+Epoch 8/10 | Train Loss: 0.088468 | Test Loss: 0.063245
+Epoch 10/10 | Train Loss: 0.077703 | Test Loss: 0.058144
+Training Completed.
+Training took 24 min 57.4 sec.
+Best test loss: 0.058144 at epoch 10
+Number of parameters:
+213148
+Epoch 2/10 | Train Loss: 0.205663 | Test Loss: 0.135045
+Epoch 4/10 | Train Loss: 0.122418 | Test Loss: 0.088566
+Epoch 6/10 | Train Loss: 0.093965 | Test Loss: 0.120475
+Epoch 8/10 | Train Loss: 0.081623 | Test Loss: 0.048726
+Epoch 10/10 | Train Loss: 0.070312 | Test Loss: 0.059345
+Training Completed.
+Training took 40 min 41.5 sec.
+Best test loss: 0.048726 at epoch 8
+Number of parameters:
+213164
+Epoch 2/10 | Train Loss: 0.211490 | Test Loss: 0.136411
+Epoch 4/10 | Train Loss: 0.121050 | Test Loss: 0.066385
+Epoch 6/10 | Train Loss: 0.093184 | Test Loss: 0.054740
+Epoch 8/10 | Train Loss: 0.080172 | Test Loss: 0.062460
+Epoch 10/10 | Train Loss: 0.068152 | Test Loss: 0.051005
+Training Completed.
+Training took 44 min 55.4 sec.
+Best test loss: 0.051005 at epoch 10
+Number of parameters:
+347308
+Epoch 2/10 | Train Loss: 0.223387 | Test Loss: 0.151182
+Epoch 4/10 | Train Loss: 0.145325 | Test Loss: 0.130454
+Epoch 6/10 | Train Loss: 0.113500 | Test Loss: 0.077845
+Epoch 8/10 | Train Loss: 0.094388 | Test Loss: 0.052832
+Epoch 10/10 | Train Loss: 0.082045 | Test Loss: 0.056101
+Training Completed.
+Training took 28 min 14.7 sec.
+Best test loss: 0.052832 at epoch 8
+Number of parameters:
+620181
+Epoch 2/10 | Train Loss: 0.185333 | Test Loss: 0.141847
+Epoch 4/10 | Train Loss: 0.114645 | Test Loss: 0.071416
+Epoch 6/10 | Train Loss: 0.089529 | Test Loss: 0.062303
+Epoch 8/10 | Train Loss: 0.074703 | Test Loss: 0.066419
+Epoch 10/10 | Train Loss: 0.064005 | Test Loss: 0.044292
+Training Completed.
+Training took 37 min 51.1 sec.
+Best test loss: 0.043108 at epoch 9
+Number of parameters:
+819484
+Epoch 2/10 | Train Loss: 0.172491 | Test Loss: 0.111276
+Epoch 4/10 | Train Loss: 0.106924 | Test Loss: 0.079047
+Epoch 6/10 | Train Loss: 0.084706 | Test Loss: 0.051010
+Epoch 8/10 | Train Loss: 0.072602 | Test Loss: 0.042593
+Epoch 10/10 | Train Loss: 0.060078 | Test Loss: 0.040803
+Training Completed.
+Training took 52 min 58.9 sec.
+Best test loss: 0.040803 at epoch 10
+Number of parameters:
+819500
