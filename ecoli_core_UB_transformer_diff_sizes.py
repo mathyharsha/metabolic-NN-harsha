@@ -477,7 +477,7 @@ if __name__ == "__main__":
     n_layers = 3
     d_ff = 1024
     batch_size = 8 #32
-    num_epochs = 20
+    num_epochs = 10
     learning_rate = 1e-4
     dropout = 0.02
     
@@ -515,13 +515,49 @@ if __name__ == "__main__":
         print(sum( p.numel() for p in model.parameters() if p.requires_grad ))
 
 
+
         today = date.today().isoformat()
-        model_name = f"ecoli_core_UB_null_d{model_configs['d_model'][e]}_h{model_configs['n_heads'][e]}_l{model_configs['n_layers'][e]}_ff{model_configs['d_ff'][e]}"
+        model_name = f"ecoli_core_UB_null_d{d_model}_h{n_heads}_l{n_layers}_ff{d_ff}"
 
         model_save_dir = f"./models/{model_name}"
         model_save_path = f"{model_save_dir}/{model_name}.pth"
         os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
         torch.save(model.state_dict(), model_save_path)
+
+        checkpoint = {
+        'epoch': len(train_losses),
+        'model_state_dict': model.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+        'train_losses': train_losses,
+        'test_losses': test_losses,
+        'config': {
+            'd_model': d_model,
+            'n_heads': n_heads,
+            'n_layers': n_layers,
+            'd_ff': d_ff,
+            'dropout': dropout,
+            'batch_size': batch_size,
+            'learning_rate': learning_rate,
+            'num_epochs': num_epochs,
+            'vocab_size': len(input_cols) + len(output_cols),
+            'n_inputs': len(input_cols)
+        },
+        'rng_state': {
+            'torch': torch.get_rng_state(),
+            'numpy': np.random.get_state(),
+            'cuda': torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+        },
+        'data_info': {
+            'dataset': DATAPATH,
+            'input_cols': input_cols,
+            'output_cols': output_cols,
+            'n_train': len(X_train),
+            'n_test': len(X_test)
+        }
+        }
+    
+        checkpoint_path = f"{model_save_dir}/{model_name}_checkpoint.pth"
+        torch.save(checkpoint, checkpoint_path)
 
 
 
