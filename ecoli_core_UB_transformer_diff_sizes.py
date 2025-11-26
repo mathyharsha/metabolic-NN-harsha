@@ -477,7 +477,7 @@ if __name__ == "__main__":
     n_layers = 3
     d_ff = 1024
     batch_size = 8 #32
-    num_epochs = 200
+    num_epochs = 20
     learning_rate = 1e-4
     dropout = 0.02
     
@@ -516,7 +516,7 @@ if __name__ == "__main__":
 
 
         today = date.today().isoformat()
-        model_name = f"ecoli_core_UB_null_d{d_model}_h{n_heads}_l{n_layers}_ff{d_ff}"
+        model_name = f"ecoli_core_UB_null_d{model_configs['d_model'][e]}_h{model_configs['n_heads'][e]}_l{model_configs['n_layers'][e]}_ff{model_configs['d_ff'][e]}"
 
         model_save_dir = f"./models/{model_name}"
         model_save_path = f"{model_save_dir}/{model_name}.pth"
