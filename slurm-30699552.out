@@ -1,0 +1,159 @@
+Training on device: cuda
+PyTorch version: 2.8.0+cu128
+Training samples: 9240
+Test samples: 6160
+CUDA Allocated memory: 20.44 MB
+CUDA Reserved memory: 40.00 MB
+Using device: cuda
+Training samples: 9240
+Test samples: 6160
+Epoch 2/20 | Train Loss: 1.026965 | Test Loss: 0.852873
+Epoch 4/20 | Train Loss: 0.769777 | Test Loss: 0.698841
+Epoch 6/20 | Train Loss: 0.674755 | Test Loss: 0.588939
+Epoch 8/20 | Train Loss: 0.602463 | Test Loss: 0.527308
+Epoch 10/20 | Train Loss: 0.537534 | Test Loss: 0.485844
+Epoch 12/20 | Train Loss: 0.485422 | Test Loss: 0.390466
+Epoch 14/20 | Train Loss: 0.442107 | Test Loss: 0.356860
+Epoch 16/20 | Train Loss: 0.404707 | Test Loss: 0.321114
+Epoch 18/20 | Train Loss: 0.375193 | Test Loss: 0.280710
+Epoch 20/20 | Train Loss: 0.347688 | Test Loss: 0.263869
+Training Completed.
+Training took 6 min 16.1 sec.
+Best test loss: 0.263869 at epoch 20
+Number of parameters:
+9687
+Epoch 2/20 | Train Loss: 0.752130 | Test Loss: 0.633398
+Epoch 4/20 | Train Loss: 0.532812 | Test Loss: 0.440307
+Epoch 6/20 | Train Loss: 0.362491 | Test Loss: 0.260121
+Epoch 8/20 | Train Loss: 0.270452 | Test Loss: 0.201362
+Epoch 10/20 | Train Loss: 0.223345 | Test Loss: 0.166987
+Epoch 12/20 | Train Loss: 0.197207 | Test Loss: 0.118699
+Epoch 14/20 | Train Loss: 0.181622 | Test Loss: 0.124946
+Epoch 16/20 | Train Loss: 0.169639 | Test Loss: 0.116705
+Epoch 18/20 | Train Loss: 0.159646 | Test Loss: 0.112866
+Epoch 20/20 | Train Loss: 0.153914 | Test Loss: 0.101609
+Training Completed.
+Training took 3 min 46.5 sec.
+Best test loss: 0.101609 at epoch 20
+Number of parameters:
+19743
+Epoch 2/20 | Train Loss: 0.624582 | Test Loss: 0.463970
+Epoch 4/20 | Train Loss: 0.289407 | Test Loss: 0.190226
+Epoch 6/20 | Train Loss: 0.201343 | Test Loss: 0.146488
+Epoch 8/20 | Train Loss: 0.166030 | Test Loss: 0.103921
+Epoch 10/20 | Train Loss: 0.142768 | Test Loss: 0.091181
+Epoch 12/20 | Train Loss: 0.129479 | Test Loss: 0.115810
+Epoch 14/20 | Train Loss: 0.114488 | Test Loss: 0.066441
+Epoch 16/20 | Train Loss: 0.104779 | Test Loss: 0.069366
+Epoch 18/20 | Train Loss: 0.095812 | Test Loss: 0.060738
+Epoch 20/20 | Train Loss: 0.090597 | Test Loss: 0.060974
+Training Completed.
+Training took 4 min 25.8 sec.
+Best test loss: 0.060738 at epoch 18
+Number of parameters:
+44469
+Epoch 2/20 | Train Loss: 0.365797 | Test Loss: 0.188509
+Epoch 4/20 | Train Loss: 0.180345 | Test Loss: 0.142051
+Epoch 6/20 | Train Loss: 0.144307 | Test Loss: 0.114598
+Epoch 8/20 | Train Loss: 0.124805 | Test Loss: 0.090874
+Epoch 10/20 | Train Loss: 0.111712 | Test Loss: 0.087629
+Epoch 12/20 | Train Loss: 0.097301 | Test Loss: 0.064897
+Epoch 14/20 | Train Loss: 0.089325 | Test Loss: 0.055168
+Epoch 16/20 | Train Loss: 0.080243 | Test Loss: 0.063702
+Epoch 18/20 | Train Loss: 0.073017 | Test Loss: 0.064083
+Epoch 20/20 | Train Loss: 0.069723 | Test Loss: 0.066747
+Training Completed.
+Training took 5 min 19.4 sec.
+Best test loss: 0.041443 at epoch 19
+Number of parameters:
+91740
+Epoch 2/20 | Train Loss: 0.231281 | Test Loss: 0.157844
+Epoch 4/20 | Train Loss: 0.135660 | Test Loss: 0.100494
+Epoch 6/20 | Train Loss: 0.102226 | Test Loss: 0.098898
+Epoch 8/20 | Train Loss: 0.084750 | Test Loss: 0.056016
+Epoch 10/20 | Train Loss: 0.076251 | Test Loss: 0.053313
+Epoch 12/20 | Train Loss: 0.067674 | Test Loss: 0.049486
+Epoch 14/20 | Train Loss: 0.061038 | Test Loss: 0.041783
+Epoch 16/20 | Train Loss: 0.057589 | Test Loss: 0.042067
+Epoch 18/20 | Train Loss: 0.055122 | Test Loss: 0.051147
+Epoch 20/20 | Train Loss: 0.051083 | Test Loss: 0.030708
+Training Completed.
+Training took 5 min 43.6 sec.
+Best test loss: 0.030708 at epoch 20
+Number of parameters:
+213148
+Epoch 2/20 | Train Loss: 0.209818 | Test Loss: 0.153710
+Epoch 4/20 | Train Loss: 0.124532 | Test Loss: 0.092120
+Epoch 6/20 | Train Loss: 0.097419 | Test Loss: 0.062654
+Epoch 8/20 | Train Loss: 0.081656 | Test Loss: 0.056876
+Epoch 10/20 | Train Loss: 0.070024 | Test Loss: 0.066742
+Epoch 12/20 | Train Loss: 0.063945 | Test Loss: 0.043651
+Epoch 14/20 | Train Loss: 0.058829 | Test Loss: 0.032818
+Epoch 16/20 | Train Loss: 0.052304 | Test Loss: 0.040627
+Epoch 18/20 | Train Loss: 0.047299 | Test Loss: 0.027835
+Epoch 20/20 | Train Loss: 0.044927 | Test Loss: 0.035558
+Training Completed.
+Training took 5 min 50.1 sec.
+Best test loss: 0.027835 at epoch 18
+Number of parameters:
+213164
+Epoch 2/20 | Train Loss: 0.211163 | Test Loss: 0.162919
+Epoch 4/20 | Train Loss: 0.130834 | Test Loss: 0.084603
+Epoch 6/20 | Train Loss: 0.097994 | Test Loss: 0.088790
+Epoch 8/20 | Train Loss: 0.077831 | Test Loss: 0.077476
+Epoch 10/20 | Train Loss: 0.068511 | Test Loss: 0.066634
+Epoch 12/20 | Train Loss: 0.061434 | Test Loss: 0.041635
+Epoch 14/20 | Train Loss: 0.055225 | Test Loss: 0.029217
+Epoch 16/20 | Train Loss: 0.050814 | Test Loss: 0.034235
+Epoch 18/20 | Train Loss: 0.046140 | Test Loss: 0.028588
+Epoch 20/20 | Train Loss: 0.043429 | Test Loss: 0.031927
+Training Completed.
+Training took 5 min 30.4 sec.
+Best test loss: 0.028588 at epoch 18
+Number of parameters:
+347308
+Epoch 2/20 | Train Loss: 0.230120 | Test Loss: 0.172571
+Epoch 4/20 | Train Loss: 0.146854 | Test Loss: 0.098525
+Epoch 6/20 | Train Loss: 0.106535 | Test Loss: 0.123692
+Epoch 8/20 | Train Loss: 0.089910 | Test Loss: 0.069788
+Epoch 10/20 | Train Loss: 0.079310 | Test Loss: 0.057550
+Epoch 12/20 | Train Loss: 0.067995 | Test Loss: 0.044252
+Epoch 14/20 | Train Loss: 0.063439 | Test Loss: 0.072897
+Epoch 16/20 | Train Loss: 0.056921 | Test Loss: 0.037332
+Epoch 18/20 | Train Loss: 0.051687 | Test Loss: 0.040298
+Epoch 20/20 | Train Loss: 0.049125 | Test Loss: 0.033440
+Training Completed.
+Training took 4 min 52.0 sec.
+Best test loss: 0.033440 at epoch 20
+Number of parameters:
+620181
+Epoch 2/20 | Train Loss: 0.190662 | Test Loss: 0.142473
+Epoch 4/20 | Train Loss: 0.120631 | Test Loss: 0.100172
+Epoch 6/20 | Train Loss: 0.095191 | Test Loss: 0.069776
+Epoch 8/20 | Train Loss: 0.079317 | Test Loss: 0.058377
+Epoch 10/20 | Train Loss: 0.067945 | Test Loss: 0.039104
+Epoch 12/20 | Train Loss: 0.059062 | Test Loss: 0.041414
+Epoch 14/20 | Train Loss: 0.052857 | Test Loss: 0.039610
+Epoch 16/20 | Train Loss: 0.046825 | Test Loss: 0.027088
+Epoch 18/20 | Train Loss: 0.043712 | Test Loss: 0.042374
+Epoch 20/20 | Train Loss: 0.039525 | Test Loss: 0.039185
+Training Completed.
+Training took 6 min 22.8 sec.
+Best test loss: 0.024116 at epoch 19
+Number of parameters:
+819484
+Epoch 2/20 | Train Loss: 0.169875 | Test Loss: 0.123718
+Epoch 4/20 | Train Loss: 0.111221 | Test Loss: 0.074717
+Epoch 6/20 | Train Loss: 0.083958 | Test Loss: 0.064070
+Epoch 8/20 | Train Loss: 0.070611 | Test Loss: 0.051420
+Epoch 10/20 | Train Loss: 0.062341 | Test Loss: 0.041375
+Epoch 12/20 | Train Loss: 0.055921 | Test Loss: 0.034903
+Epoch 14/20 | Train Loss: 0.049125 | Test Loss: 0.031330
+Epoch 16/20 | Train Loss: 0.044955 | Test Loss: 0.036583
+Epoch 18/20 | Train Loss: 0.040223 | Test Loss: 0.022744
+Epoch 20/20 | Train Loss: 0.037279 | Test Loss: 0.025252
+Training Completed.
+Training took 6 min 7.8 sec.
+Best test loss: 0.022744 at epoch 18
+Number of parameters:
+819500
