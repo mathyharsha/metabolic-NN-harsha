@@ -1,11 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=ecoli_samples
 #SBATCH --account=project_2013496
-#SBATCH --time=15:00:00
-#SBATCH --partition=small
+#SBATCH --time=16:00:00
+#SBATCH --partition=gpu
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=32G
+#SBATCH --cpus-per-task=10
+#SBATCH --mem-per-cpu=8000
+#SBATCH --gres=gpu:v100:4
 
 module load python-data
 source /scratch/project_2013496/vflux/bin/activate
