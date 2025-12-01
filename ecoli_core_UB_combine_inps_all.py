@@ -490,7 +490,7 @@ if __name__ == "__main__":
     n_layers = 3
     d_ff = 1024
     batch_size = 8 #32
-    num_epochs = 50
+    num_epochs = 15
     learning_rate = 1e-4
     dropout = 0.02
     output_sample_ratio = 1
