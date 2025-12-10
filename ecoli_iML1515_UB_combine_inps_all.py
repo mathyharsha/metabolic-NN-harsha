@@ -516,6 +516,7 @@ if __name__ == "__main__":
                             ]}
 
     for e,_ in enumerate(model_configs['d_model']):
+	break if device.type == 'cpu' and (e>4) else continue
         train_losses, test_losses, model, optimizer = train_model(d_model=model_configs['d_model'][e], 
                                                                       n_heads=model_configs['n_heads'][e], 
                                                                       n_layers=model_configs['n_layers'][e], 
